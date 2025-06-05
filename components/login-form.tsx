@@ -32,7 +32,7 @@ export function LoginForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true)
     try {
-      const response = await fetch("http://ai.rajatkhandelwal.com/auth", {
+      const response = await fetch("https://ai.rajatkhandelwal.com/auth", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

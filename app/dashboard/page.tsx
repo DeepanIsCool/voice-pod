@@ -39,7 +39,7 @@ export default function Dashboard() {
     let interval: NodeJS.Timeout;
     async function fetchCallLogs() {
       try {
-        const response = await fetch("http://ai.rajatkhandelwal.com/calllogs", {
+        const response = await fetch("https://ai.rajatkhandelwal.com/calllogs", {
           headers: getAuthHeaders(),
         })
         if (!response.ok) {

@@ -33,7 +33,7 @@ export default function PromptManagement() {
   useEffect(() => {
     async function fetchPrompt() {
       try {
-        const response = await fetch("http://ai.rajatkhandelwal.com/getprompt", {
+        const response = await fetch("https://ai.rajatkhandelwal.com/getprompt", {
           headers: getAuthHeaders(),
         })
 
@@ -61,7 +61,7 @@ export default function PromptManagement() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSaving(true)
     try {
-      const response = await fetch("http://ai.rajatkhandelwal.com/setprompt", {
+      const response = await fetch("https://ai.rajatkhandelwal.com/setprompt", {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify({ prompt: values.prompt }),
