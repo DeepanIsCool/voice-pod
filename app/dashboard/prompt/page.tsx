@@ -161,7 +161,7 @@ export default function PromptManagement() {
                           value={field.value}
                           onChange={(e) => {
                             const sanitized = e.target.value.replace(
-                              /[^a-zA-Z0-9 .,!?()\-_:;\[\]{}]/g,
+                              /[^a-zA-Z0-9 .,!?()\-_:;\[\]{}"']/g,
                               ""
                             );
                             field.onChange(sanitized);
