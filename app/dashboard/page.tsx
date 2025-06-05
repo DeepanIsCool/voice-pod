@@ -78,7 +78,7 @@ export default function Dashboard() {
       }
     }
     fetchCallLogs();
-    interval = setInterval(fetchCallLogs, 5000); // Poll every 5 seconds
+    interval = setInterval(fetchCallLogs, 60000); // Poll every 60 seconds
     return () => clearInterval(interval);
   }, [toast])
 
