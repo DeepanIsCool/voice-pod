@@ -1,8 +1,7 @@
-//components/call-logs-table.tsx
-
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import moment from "moment-timezone";
 import {
   type ColumnDef,
   flexRender,
@@ -13,9 +12,10 @@ import {
   useReactTable,
   getFilteredRowModel,
 } from "@tanstack/react-table";
-import { ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
+import { Play, Pause, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
 import {
   Table,
   TableBody,
@@ -31,6 +31,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+// ---- TYPES ----
 interface CallLog {
   id: string;
   name: string | undefined;
@@ -52,7 +53,6 @@ interface CallLog {
   amaflags: string | undefined;
   uniqueid: string | undefined;
   userfield: string | undefined;
-  // For transcript
   summary: Array<{
     transcription: Array<{
       role: string;
@@ -65,6 +65,167 @@ interface CallLogsTableProps {
   data: CallLog[];
 }
 
+// ---- AUDIO PLAYER ----
+function getAudioUrl(src: string | undefined, start: string | undefined) {
+  if (!src || !start) return "";
+  const formatted = moment(start).utc().format("YYYYMMDD-HHmmss");
+  return `https://ai.rajatkhandelwal.com/audio/${src}-${formatted}.wav`;
+}
+
+function AudioPlayer({ audioUrl }: { audioUrl: string }) {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(1);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const updateTime = () => setCurrentTime(audio.currentTime);
+    const updateDuration = () => setDuration(audio.duration);
+    const handleEnded = () => setIsPlaying(false);
+
+    audio.addEventListener("timeupdate", updateTime);
+    audio.addEventListener("loadedmetadata", updateDuration);
+    audio.addEventListener("ended", handleEnded);
+
+    return () => {
+      audio.removeEventListener("timeupdate", updateTime);
+      audio.removeEventListener("loadedmetadata", updateDuration);
+      audio.removeEventListener("ended", handleEnded);
+    };
+  }, []);
+
+  const togglePlayPause = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (isPlaying) audio.pause();
+    else audio.play();
+    setIsPlaying(!isPlaying);
+  };
+
+  const handleSeek = (value: number[]) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.currentTime = value[0];
+    setCurrentTime(value[0]);
+  };
+
+  const handleVolumeChange = (value: number[]) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const newVolume = value[0];
+    audio.volume = newVolume;
+    setVolume(newVolume);
+  };
+
+  const formatTime = (time: number) => {
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  };
+
+  if (!audioUrl) {
+    return (
+      <div className="text-gray-400 text-sm">
+        Audio recording not available.
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl bg-white dark:bg-muted shadow p-4 flex flex-col gap-3">
+      <audio ref={audioRef} src={audioUrl} preload="metadata" />
+      <div className="flex items-center gap-4">
+        <Button variant="outline" size="icon" onClick={togglePlayPause}>
+          {isPlaying ? (
+            <Pause className="w-5 h-5" />
+          ) : (
+            <Play className="w-5 h-5" />
+          )}
+        </Button>
+        <Slider
+          value={[currentTime]}
+          max={duration || 1}
+          step={1}
+          onValueChange={handleSeek}
+          className="flex-1 mx-2"
+        />
+        <span className="text-xs font-mono text-gray-600 dark:text-gray-300">
+          {formatTime(currentTime)} / {formatTime(duration)}
+        </span>
+        <div className="flex items-center gap-2 w-24 ml-2">
+          <Volume2 className="w-4 h-4 text-gray-500" />
+          <Slider
+            value={[volume]}
+            max={1}
+            step={0.01}
+            onValueChange={handleVolumeChange}
+          />
+        </div>
+        <Button variant="ghost" size="icon" asChild>
+          <a href={audioUrl} download>
+            <svg
+              className="w-5 h-5 text-gray-500"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+            >
+              <path d="M12 5v14m0 0l-5-5m5 5l5-5" />
+            </svg>
+          </a>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ---- CONVERSATION BUBBLE ----
+function ConversationBubble({
+  role,
+  content,
+}: {
+  role: string;
+  content: string;
+}) {
+  const isUser = role === "user";
+  const isAssistant = role === "assistant";
+  const base =
+    "px-4 py-2 rounded-lg text-sm shadow max-w-[70%] whitespace-pre-wrap";
+  const userClasses =
+    "ml-auto bg-blue-600 text-white rounded-br-md rounded-tl-md";
+  const assistantClasses =
+    "mr-auto bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-50 rounded-bl-md rounded-tr-md";
+  const sysClasses =
+    "mx-auto bg-yellow-100 text-yellow-900 border border-yellow-200";
+  return (
+    <div
+      className={`flex ${
+        isUser
+          ? "justify-end"
+          : isAssistant
+          ? "justify-start"
+          : "justify-center"
+      } mb-2`}
+    >
+      <div
+        className={`${base} ${
+          isUser ? userClasses : isAssistant ? assistantClasses : sysClasses
+        }`}
+      >
+        <span className="block text-xs font-bold opacity-70 capitalize mb-1">
+          {role}
+        </span>
+        {content}
+      </div>
+    </div>
+  );
+}
+
+// ---- MAIN TABLE COMPONENT ----
 export function CallLogsTable({ data }: CallLogsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
@@ -212,7 +373,7 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
-                  onClick={() => setSelectedLog(row.original)} // <-- Add this
+                  onClick={() => setSelectedLog(row.original)}
                   className="cursor-pointer"
                 >
                   {row.getVisibleCells().map((cell) => (
@@ -264,70 +425,54 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
         open={!!selectedLog}
         onOpenChange={(open) => !open && setSelectedLog(null)}
       >
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Call Log Details</DialogTitle>
+            <DialogTitle>Call Details</DialogTitle>
           </DialogHeader>
           {selectedLog && (
-            <div className="space-y-6">
-              {/* Call Details */}
-              <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-6">
+              {/* Call Info */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-background rounded-lg p-4 shadow">
                 <div>
-                  <h3 className="font-medium">Time</h3>
-                  <p>{new Date(selectedLog.start).toLocaleString()}</p>
+                  <span className="font-medium">Time:</span>
+                  <div>{new Date(selectedLog.start).toLocaleString()}</div>
                 </div>
                 <div>
-                  <h3 className="font-medium">From</h3>
-                  <p>{selectedLog.src}</p>
+                  <span className="font-medium">From:</span>
+                  <div>{selectedLog.src}</div>
                 </div>
                 <div>
-                  <h3 className="font-medium">Duration</h3>
-                  <p>{selectedLog.duration}s</p>
+                  <span className="font-medium">Duration:</span>
+                  <div>{selectedLog.duration}s</div>
                 </div>
                 <div>
-                  <h3 className="font-medium">ID</h3>
-                  <p className="font-mono text-sm">{selectedLog.id}</p>
+                  <span className="font-medium">Call ID:</span>
+                  <div className="font-mono text-sm">{selectedLog.id}</div>
                 </div>
               </div>
-              {/* Transcript Conversation */}
+              {/* Audio Section */}
               <div>
-                <h3 className="font-medium mb-2">Transcript</h3>
-                <div className="bg-muted rounded-lg p-4 max-h-[350px] overflow-y-auto space-y-3">
+                <h3 className="text-base font-semibold mb-2">Call Recording</h3>
+                <AudioPlayer
+                  audioUrl={getAudioUrl(selectedLog.src, selectedLog.start)}
+                />
+              </div>
+              {/* Transcript */}
+              <div>
+                <h3 className="text-base font-semibold mb-2">Transcript</h3>
+                <div className="bg-muted rounded-lg p-4 max-h-[350px] overflow-y-auto">
                   {(selectedLog.summary?.[0]?.transcription ?? []).map(
                     (msg, idx) => (
-                      <div
+                      <ConversationBubble
                         key={idx}
-                        className={`flex ${
-                          msg.role === "user" ? "justify-end" : "justify-start"
-                        }`}
-                      >
-                        <div className={`max-w-[80%]`}>
-                          <div
-                            className={`
-                  px-3 py-2 rounded-lg
-                  ${
-                    msg.role === "user"
-                      ? "bg-blue-500 text-white"
-                      : msg.role === "assistant"
-                      ? "bg-gray-200 text-gray-900"
-                      : "bg-yellow-100 text-yellow-800 border border-yellow-300"
-                  }
-                `}
-                          >
-                            <span className="block text-xs mb-1 font-semibold capitalize">
-                              {msg.role}
-                            </span>
-                            <span className="whitespace-pre-wrap">
-                              {msg.content}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
+                        role={msg.role}
+                        content={msg.content}
+                      />
                     )
                   )}
                   {(selectedLog.summary?.[0]?.transcription?.length === 0 ||
                     !selectedLog.summary) && (
-                    <div className="text-sm text-muted-foreground text-center">
+                    <div className="text-sm text-center text-gray-400">
                       No transcript available.
                     </div>
                   )}
