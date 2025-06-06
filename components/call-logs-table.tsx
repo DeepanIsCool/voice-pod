@@ -33,22 +33,32 @@ import {
 
 interface CallLog {
   id: string;
-  start: string;
-  duration: number;
+  name: string | undefined;
+  accountcode: string | undefined;
+  src: string | undefined;
+  dst: string | undefined;
+  dcontext: string | undefined;
+  clid: string | undefined;
   channel: string;
-  cost?: string;
-  sessionid?: string;
-  endreason?: string;
-  sessionstatus?: string;
-  usersentiment?: string;
-  from?: string;
-  to?: string;
-  sessionoutcome?: string;
-  latency?: string;
-  // API fields
-  src?: string;
-  dst?: string;
-  disposition?: string;
+  dstchannel: string | undefined;
+  lastapp: string | undefined;
+  lastdata: string | undefined;
+  start: string;
+  answer: string | undefined;
+  end: string | undefined;
+  duration: number;
+  billsec: number | undefined;
+  disposition: string | undefined;
+  amaflags: string | undefined;
+  uniqueid: string | undefined;
+  userfield: string | undefined;
+  // For transcript
+  summary: Array<{
+    transcription: Array<{
+      role: string;
+      content: string;
+    }>;
+  }>;
 }
 
 interface CallLogsTableProps {
@@ -259,7 +269,8 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
             <DialogTitle>Call Log Details</DialogTitle>
           </DialogHeader>
           {selectedLog && (
-            <div className="space-y-4">
+            <div className="space-y-6">
+              {/* Call Details */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h3 className="font-medium">Time</h3>
@@ -278,8 +289,50 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
                   <p className="font-mono text-sm">{selectedLog.id}</p>
                 </div>
               </div>
-
-              {/* You can add more details here as needed, e.g. channel, disposition, etc. */}
+              {/* Transcript Conversation */}
+              <div>
+                <h3 className="font-medium mb-2">Transcript</h3>
+                <div className="bg-muted rounded-lg p-4 max-h-[350px] overflow-y-auto space-y-3">
+                  {(selectedLog.summary?.[0]?.transcription ?? []).map(
+                    (msg, idx) => (
+                      <div
+                        key={idx}
+                        className={`flex ${
+                          msg.role === "user" ? "justify-end" : "justify-start"
+                        }`}
+                      >
+                        <div className={`max-w-[80%]`}>
+                          <div
+                            className={`
+                  px-3 py-2 rounded-lg
+                  ${
+                    msg.role === "user"
+                      ? "bg-blue-500 text-white"
+                      : msg.role === "assistant"
+                      ? "bg-gray-200 text-gray-900"
+                      : "bg-yellow-100 text-yellow-800 border border-yellow-300"
+                  }
+                `}
+                          >
+                            <span className="block text-xs mb-1 font-semibold capitalize">
+                              {msg.role}
+                            </span>
+                            <span className="whitespace-pre-wrap">
+                              {msg.content}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  )}
+                  {(selectedLog.summary?.[0]?.transcription?.length === 0 ||
+                    !selectedLog.summary) && (
+                    <div className="text-sm text-muted-foreground text-center">
+                      No transcript available.
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </DialogContent>

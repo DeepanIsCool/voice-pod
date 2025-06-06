@@ -1,4 +1,4 @@
-//dashboard/page.tsx
+//app/dashboard/page.tsx
 
 "use client"
 
@@ -9,25 +9,35 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { CallLogsTable } from "@/components/call-logs-table"
 import { useToast } from "@/components/ui/use-toast"
 
-// Unified CallLog type for both API and table
+// Add transcript/summary to CallLog for future chat popup
 interface CallLog {
   id: string
-  start: string // maps to API 'start'
-  duration: number
+  name: string | undefined
+  accountcode: string | undefined
+  src: string | undefined
+  dst: string | undefined
+  dcontext: string | undefined
+  clid: string | undefined
   channel: string
-  cost?: string
-  sessionid?: string
-  endreason?: string
-  sessionstatus?: string
-  usersentiment?: string
-  from?: string
-  to?: string
-  sessionoutcome?: string
-  latency?: string
-  // API fields
-  src?: string
-  dst?: string
-  disposition?: string
+  dstchannel: string | undefined
+  lastapp: string | undefined
+  lastdata: string | undefined
+  start: string
+  answer: string | undefined
+  end: string | undefined
+  duration: number
+  billsec: number | undefined
+  disposition: string | undefined
+  amaflags: string | undefined
+  uniqueid: string | undefined
+  userfield: string | undefined
+  // For transcript
+  summary: Array<{
+    transcription: Array<{
+      role: string
+      content: string
+    }>
+  }>
 }
 
 export default function Dashboard() {
@@ -36,7 +46,7 @@ export default function Dashboard() {
   const { toast } = useToast()
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: NodeJS.Timeout
     async function fetchCallLogs() {
       try {
         const response = await fetch("https://ai.rajatkhandelwal.com/calllogs", {
@@ -46,24 +56,38 @@ export default function Dashboard() {
           throw new Error("Failed to fetch call logs")
         }
         const data = await response.json()
-        // Map API data to table CallLog type
-        const mapped = (Array.isArray(data) ? data : []).map((item: any) => ({
+        // Map all fields
+        const mapped: CallLog[] = (Array.isArray(data) ? data : []).map((item: any) => ({
           id: item.id,
-          start: item.start,
-          duration: item.duration,
-          channel: item.channel,
-          cost: "$0.00",
-          sessionid: item.uniqueid,
-          endreason: item.disposition,
-          sessionstatus: "ended",
-          usersentiment: "-",
-          from: item.src,
-          to: item.dst,
-          sessionoutcome: "Unsuccessful",
-          latency: "-",
-          src: item.src,
-          dst: item.dst,
-          disposition: item.disposition,
+          name: item.name ?? undefined,
+          accountcode: item.accountcode ?? undefined,
+          src: item.src ?? undefined,
+          dst: item.dst ?? undefined,
+          dcontext: item.dcontext ?? undefined,
+          clid: item.clid ?? undefined,
+          channel: item.channel ?? "",
+          dstchannel: item.dstchannel ?? undefined,
+          lastapp: item.lastapp ?? undefined,
+          lastdata: item.lastdata ?? undefined,
+          start: item.start ?? "",
+          answer: item.answer ?? undefined,
+          end: item.end ?? undefined,
+          duration: typeof item.duration === "number" ? item.duration : 0,
+          billsec: typeof item.billsec === "number" ? item.billsec : undefined,
+          disposition: item.disposition ?? undefined,
+          amaflags: item.amaflags ?? undefined,
+          uniqueid: item.uniqueid ?? undefined,
+          userfield: item.userfield ?? undefined,
+          summary: Array.isArray(item.Summary)
+            ? item.Summary.map((sum: any) => ({
+                transcription: Array.isArray(sum.transcription)
+                  ? sum.transcription.map((t: any) => ({
+                      role: t.role ?? "",
+                      content: t.content ?? "",
+                    }))
+                  : [],
+              }))
+            : [],
         }))
         setCallLogs(mapped)
       } catch (error) {
@@ -77,9 +101,9 @@ export default function Dashboard() {
         setIsLoading(false)
       }
     }
-    fetchCallLogs();
-    interval = setInterval(fetchCallLogs, 60000); // Poll every 60 seconds
-    return () => clearInterval(interval);
+    fetchCallLogs()
+    interval = setInterval(fetchCallLogs, 60000)
+    return () => clearInterval(interval)
   }, [toast])
 
   return (
@@ -110,7 +134,7 @@ export default function Dashboard() {
             {isLoading ? (
               <Skeleton className="h-7 w-20" />
             ) : (
-              <div className="text-2xl font-bold">{new Set(callLogs.map((log) => log.from)).size}</div>
+              <div className="text-2xl font-bold">{new Set(callLogs.map((log) => log.src)).size}</div>
             )}
           </CardContent>
         </Card>
