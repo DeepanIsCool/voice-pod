@@ -1,3 +1,5 @@
+//components/call-logs-table.tsx
+
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -66,10 +68,9 @@ interface CallLogsTableProps {
 }
 
 // ---- AUDIO PLAYER ----
-function getAudioUrl(src: string | undefined, start: string | undefined) {
-  if (!src || !start) return "";
-  const formatted = moment(start).utc().format("YYYYMMDD-HHmmss");
-  return `https://ai.rajatkhandelwal.com/audio/${src}-${formatted}.wav`;
+function getAudioUrl(lastdata: string | undefined) {
+  if (!lastdata) return "";
+  return `https://ai.rajatkhandelwal.com/audio/${lastdata}.wav`;
 }
 
 function AudioPlayer({ audioUrl }: { audioUrl: string }) {
@@ -339,13 +340,8 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
           className="max-w-sm"
         />
       </div>
-      <div className="w-full">
-        <Table className="min-w-full w-full table-auto">
-          <colgroup>
-            {columns.map((_, idx) => (
-              <col key={idx} style={{ width: `${100 / columns.length}%` }} />
-            ))}
-          </colgroup>
+      <div className="w-full overflow-x-auto">
+        <Table className="min-w-full">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
@@ -453,10 +449,15 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
               {/* Audio Section */}
               <div>
                 <h3 className="text-base font-semibold mb-2">Call Recording</h3>
-                <AudioPlayer
-                  audioUrl={getAudioUrl(selectedLog.src, selectedLog.start)}
-                />
+                {selectedLog.lastdata ? (
+                  <AudioPlayer audioUrl={getAudioUrl(selectedLog.lastdata)} />
+                ) : (
+                  <div className="text-muted-foreground text-sm">
+                    No audio recording available.
+                  </div>
+                )}
               </div>
+
               {/* Transcript */}
               <div>
                 <h3 className="text-base font-semibold mb-2">Transcript</h3>
