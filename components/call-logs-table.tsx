@@ -1,9 +1,6 @@
-//components/call-logs-table.tsx
-
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import moment from "moment-timezone";
 import {
   type ColumnDef,
   flexRender,
@@ -14,7 +11,7 @@ import {
   useReactTable,
   getFilteredRowModel,
 } from "@tanstack/react-table";
-import { Play, Pause, Volume2 } from "lucide-react";
+import { Play, Pause, Volume2, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
@@ -169,34 +166,19 @@ function AudioPlayer({ audioUrl }: { audioUrl: string }) {
         <Button
           variant="ghost"
           size="icon"
-          onClick={async () => {
-            // Directly download the audio file using axios and save as .wav
-            const axios = (await import("axios")).default;
-            const fileName = audioUrl.split("/").pop() || "audio.wav";
-            try {
-              const response = await axios.get(audioUrl, { responseType: "blob" });
-              const url = window.URL.createObjectURL(new Blob([response.data]));
-              const link = document.createElement("a");
-              link.href = url;
-              link.setAttribute("download", fileName);
-              document.body.appendChild(link);
-              link.click();
-              link.parentNode?.removeChild(link);
-              window.URL.revokeObjectURL(url);
-            } catch (err) {
-              console.error("Failed to download audio", err);
-            }
-          }}
+          asChild
         >
-          <svg
-            className="w-5 h-5 text-gray-500"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            viewBox="0 0 24 24"
-          >
-            <path d="M12 5v14m0 0l-5-5m5 5l5-5" />
-          </svg>
+          <a href={audioUrl} download>
+            <svg
+              className="w-5 h-5 text-gray-500"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+            >
+              <path d="M12 5v14m0 0l-5-5m5 5l5-5" />
+            </svg>
+          </a>
         </Button>
       </div>
     </div>
@@ -251,6 +233,9 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
   const [globalFilter, setGlobalFilter] = useState("");
   const [selectedLog, setSelectedLog] = useState<CallLog | null>(null);
 
+  // Copy logic is here (inside dialog)
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied">("idle");
+
   const columns: ColumnDef<CallLog>[] = [
     {
       accessorKey: "start",
@@ -269,10 +254,6 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
       header: "Duration",
       cell: ({ row }) => <div>{row.getValue("duration")}s</div>,
     },
-    // {
-    //   accessorKey: "channel",
-    //   header: "Channel Type",
-    // },
     {
       accessorKey: "cost",
       header: "Cost",
@@ -287,25 +268,6 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
         </div>
       ),
     },
-    // {
-    //   accessorKey: "endreason",
-    //   header: "End Reason",
-    //   cell: ({ row }) => (
-    //     <div>
-    //       {row.getValue("endreason") || row.original.disposition || "-"}
-    //     </div>
-    //   ),
-    // },
-    // {
-    //   accessorKey: "sessionstatus",
-    //   header: "Session Status",
-    //   cell: ({ row }) => <div>{row.getValue("sessionstatus") ?? "ended"}</div>,
-    // },
-    // {
-    //   accessorKey: "usersentiment",
-    //   header: "User Sentiment",
-    //   cell: ({ row }) => <div>{row.getValue("usersentiment") ?? "-"}</div>,
-    // },
     {
       accessorKey: "from",
       header: "From",
@@ -320,18 +282,6 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
         <div>{row.getValue("to") || row.original.dst || "-"}</div>
       ),
     },
-    // {
-    //   accessorKey: "sessionoutcome",
-    //   header: "Session Outcome",
-    //   cell: ({ row }) => (
-    //     <div>{row.getValue("sessionoutcome") ?? "Unsuccessful"}</div>
-    //   ),
-    // },
-    // {
-    //   accessorKey: "latency",
-    //   header: "End to End Latency",
-    //   cell: ({ row }) => <div>{row.getValue("latency") ?? "-"}</div>,
-    // },
   ];
 
   const table = useReactTable({
@@ -348,6 +298,20 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
       globalFilter,
     },
   });
+
+  // Transcript for selectedLog (to copy)
+  const transcriptArr =
+    selectedLog?.summary?.[0]?.transcription ?? [];
+  const transcriptText = transcriptArr
+    .map((msg) => `${msg.role}: ${msg.content}`)
+    .join("\n");
+
+  const handleCopyTranscript = async () => {
+    if (!transcriptText) return;
+    await navigator.clipboard.writeText(transcriptText);
+    setCopyStatus("copied");
+    setTimeout(() => setCopyStatus("idle"), 1500);
+  };
 
   return (
     <div className="flex flex-col max-w-12xl h-full w-full space-y-4">
@@ -459,12 +423,6 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
                   <span className="font-medium">Duration:</span>
                   <div>{selectedLog.duration}s</div>
                 </div>
-                {/* <div>
-                  <span className="font-medium">Call ID:</span>
-                  <div className="font-mono text-sm">{selectedLog.id}</div>
-                </div> */}
-
-
               </div>
               {/* Audio Section */}
               <div>
@@ -477,22 +435,31 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
                   </div>
                 )}
               </div>
-
               {/* Transcript */}
               <div>
-                <h3 className="text-base font-semibold mb-2">Transcript</h3>
-                <div className="bg-muted rounded-lg p-4 max-h-[350px] overflow-y-auto">
-                  {(selectedLog.summary?.[0]?.transcription ?? []).map(
-                    (msg, idx) => (
-                      <ConversationBubble
-                        key={idx}
-                        role={msg.role}
-                        content={msg.content}
-                      />
-                    )
+                <div className="flex items-center mb-2 gap-2">
+                  <h3 className="text-base font-semibold">Transcript</h3>
+                  {transcriptArr.length > 0 && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="ml-auto flex items-center gap-1"
+                      onClick={handleCopyTranscript}
+                    >
+                      <Copy className="w-4 h-4" />
+                      {copyStatus === "copied" ? "Copied!" : "Copy All"}
+                    </Button>
                   )}
-                  {(selectedLog.summary?.[0]?.transcription?.length === 0 ||
-                    !selectedLog.summary) && (
+                </div>
+                <div className="bg-muted rounded-lg p-4 max-h-[350px] overflow-y-auto">
+                  {transcriptArr.map((msg, idx) => (
+                    <ConversationBubble
+                      key={idx}
+                      role={msg.role}
+                      content={msg.content}
+                    />
+                  ))}
+                  {transcriptArr.length === 0 && (
                     <div className="text-sm text-center text-gray-400">
                       No transcript available.
                     </div>
