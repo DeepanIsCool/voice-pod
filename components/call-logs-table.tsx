@@ -166,18 +166,37 @@ function AudioPlayer({ audioUrl }: { audioUrl: string }) {
             onValueChange={handleVolumeChange}
           />
         </div>
-        <Button variant="ghost" size="icon" asChild>
-          <a href={audioUrl} download>
-            <svg
-              className="w-5 h-5 text-gray-500"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-            >
-              <path d="M12 5v14m0 0l-5-5m5 5l5-5" />
-            </svg>
-          </a>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={async () => {
+            // Directly download the audio file using axios and save as .wav
+            const axios = (await import("axios")).default;
+            const fileName = audioUrl.split("/").pop() || "audio.wav";
+            try {
+              const response = await axios.get(audioUrl, { responseType: "blob" });
+              const url = window.URL.createObjectURL(new Blob([response.data]));
+              const link = document.createElement("a");
+              link.href = url;
+              link.setAttribute("download", fileName);
+              document.body.appendChild(link);
+              link.click();
+              link.parentNode?.removeChild(link);
+              window.URL.revokeObjectURL(url);
+            } catch (err) {
+              console.error("Failed to download audio", err);
+            }
+          }}
+        >
+          <svg
+            className="w-5 h-5 text-gray-500"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+          >
+            <path d="M12 5v14m0 0l-5-5m5 5l5-5" />
+          </svg>
         </Button>
       </div>
     </div>
@@ -440,10 +459,12 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
                   <span className="font-medium">Duration:</span>
                   <div>{selectedLog.duration}s</div>
                 </div>
-                <div>
+                {/* <div>
                   <span className="font-medium">Call ID:</span>
                   <div className="font-mono text-sm">{selectedLog.id}</div>
-                </div>
+                </div> */}
+
+
               </div>
               {/* Audio Section */}
               <div>
