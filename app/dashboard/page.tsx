@@ -40,6 +40,53 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
+  // "ok" | "error" | "loading"
+  const [dockerStatus, setDockerStatus] = useState<"ok" | "error" | "loading">(
+    "loading"
+  );
+
+  // Fetch docker health, reusing previous status for interval requests (avoids flicker)
+useEffect(() => {
+  let cancelled = false;
+  let first = true;
+
+  async function fetchDockerHealth() {
+    if (first) setDockerStatus("loading");
+    try {
+      const headers = getAuthHeaders();
+      const response = await fetch(
+        "https://ai.rajatkhandelwal.com/dockerhealth",
+        { headers }
+      );
+      // Try to parse JSON, but if it fails or status is not 'ok', treat as error
+      let data;
+      try {
+        data = await response.json();
+      } catch {
+        data = null;
+      }
+      if (!cancelled) {
+        if (data && data.status === "ok") {
+          setDockerStatus("ok");
+        } else {
+          setDockerStatus("error");
+        }
+      }
+    } catch {
+      if (!cancelled) setDockerStatus("error");
+    }
+    first = false;
+  }
+
+  fetchDockerHealth();
+  const interval = setInterval(fetchDockerHealth, 15000);
+  return () => {
+    cancelled = true;
+    clearInterval(interval);
+  };
+}, []);
+
+
   useEffect(() => {
     let interval: NodeJS.Timeout;
     async function fetchCallLogs() {
@@ -106,15 +153,16 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [toast]);
 
+
   return (
     <div className="flex flex-col h-full min-h-[80vh] w-full px-2 sm:px-4 py-6 space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Call Logs</h1>
       </div>
 
-      {/* Stats Row */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 w-full">
-        <div className="rounded-lg bg-muted shadow p-4 flex flex-col justify-center">
+      {/* Stats Row + RUNNING Button */}
+      <div className="flex flex-row flex-wrap gap-4 w-full items-center">
+        <div className="rounded-lg bg-muted shadow p-4 flex flex-col justify-center min-w-[180px]">
           <span className="text-sm font-medium text-muted-foreground">
             Total Calls
           </span>
@@ -124,7 +172,7 @@ export default function Dashboard() {
             <span className="text-2xl font-bold mt-1">{callLogs.length}</span>
           )}
         </div>
-        <div className="rounded-lg bg-muted shadow p-4 flex flex-col justify-center">
+        <div className="rounded-lg bg-muted shadow p-4 flex flex-col justify-center min-w-[180px]">
           <span className="text-sm font-medium text-muted-foreground">
             Unique Users
           </span>
@@ -136,7 +184,7 @@ export default function Dashboard() {
             </span>
           )}
         </div>
-        <div className="rounded-lg bg-muted shadow p-4 flex flex-col justify-center">
+        <div className="rounded-lg bg-muted shadow p-4 flex flex-col justify-center min-w-[180px]">
           <span className="text-sm font-medium text-muted-foreground">
             Avg. Duration
           </span>
@@ -153,7 +201,7 @@ export default function Dashboard() {
             </span>
           )}
         </div>
-        <div className="rounded-lg bg-muted shadow p-4 flex flex-col justify-center">
+        <div className="rounded-lg bg-muted shadow p-4 flex flex-col justify-center min-w-[180px]">
           <span className="text-sm font-medium text-muted-foreground">
             Last Call
           </span>
@@ -171,6 +219,38 @@ export default function Dashboard() {
             </span>
           )}
         </div>
+        {/* RUNNING BUTTON */}
+        <button
+          className={`
+            px-8 py-3 rounded-lg font-bold text-lg shadow-md ml-2
+            transition-all duration-200
+            ${dockerStatus === "loading" ? "bg-gray-500 animate-pulse" : ""}
+            ${
+              dockerStatus === "ok"
+                ? "bg-green-600 text-white"
+                : dockerStatus === "error"
+                ? "bg-red-600 text-white"
+                : ""
+            }
+          `}
+          style={{
+            boxShadow:
+              dockerStatus === "ok"
+                ? "0 0 8px 2px #22c55e"
+                : dockerStatus === "error"
+                ? "0 0 8px 2px #ef4444"
+                : undefined,
+            filter:
+              dockerStatus === "ok"
+                ? "drop-shadow(0 0 5px #22c55e88)"
+                : dockerStatus === "error"
+                ? "drop-shadow(0 0 5px #ef444488)"
+                : undefined,
+          }}
+          disabled={dockerStatus === "loading"}
+        >
+          RUNNING
+        </button>
       </div>
 
       {/* Table, fills width and scrolls if necessary */}

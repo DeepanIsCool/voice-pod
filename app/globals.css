@@ -77,3 +77,21 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .animate-glow-green {
+    animation: glow-green 1.5s infinite alternate;
+  }
+  .animate-glow-red {
+    animation: glow-red 1.5s infinite alternate;
+  }
+  @keyframes glow-green {
+    0% { box-shadow: 0 0 16px 4px #22d3ee; }
+    100% { box-shadow: 0 0 32px 8px #22d3ee; }
+  }
+  @keyframes glow-red {
+    0% { box-shadow: 0 0 16px 4px #ef4444; }
+    100% { box-shadow: 0 0 32px 8px #ef4444; }
+  }
+}
+
