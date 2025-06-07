@@ -40,16 +40,14 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  // "ok" | "error" | "loading"
   const [dockerStatus, setDockerStatus] = useState<"ok" | "error" | "loading">(
     "loading"
   );
 
-  // Fetch docker health, reusing previous status for interval requests (avoids flicker)
+  // Fetch docker health
   useEffect(() => {
     let cancelled = false;
     let first = true;
-
     async function fetchDockerHealth() {
       if (first) setDockerStatus("loading");
       try {
@@ -58,7 +56,6 @@ export default function Dashboard() {
           "https://ai.rajatkhandelwal.com/dockerhealth",
           { headers }
         );
-        // Try to parse JSON, but if it fails or status is not 'ok', treat as error
         let data;
         try {
           data = await response.json();
@@ -66,18 +63,13 @@ export default function Dashboard() {
           data = null;
         }
         if (!cancelled) {
-          if (data && data.status === "ok") {
-            setDockerStatus("ok");
-          } else {
-            setDockerStatus("error");
-          }
+          setDockerStatus(data && data.status === "ok" ? "ok" : "error");
         }
       } catch {
         if (!cancelled) setDockerStatus("error");
       }
       first = false;
     }
-
     fetchDockerHealth();
     const interval = setInterval(fetchDockerHealth, 15000);
     return () => {
@@ -152,15 +144,30 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [toast]);
 
+  // Status indicator (glowing dot)
+  const statusColor =
+    dockerStatus === "ok"
+      ? "bg-green-500 shadow-[0_0_8px_2px_#22c55e88]"
+      : dockerStatus === "loading"
+      ? "bg-gray-400 shadow-[0_0_8px_2px_#a1a1aa77] animate-pulse"
+      : "bg-red-500 shadow-[0_0_8px_2px_#ef444488]";
+  const statusText =
+    dockerStatus === "ok"
+      ? "Active"
+      : dockerStatus === "loading"
+      ? "Checking..."
+      : "Inactive";
+
   return (
     <div className="flex flex-col h-full min-h-[80vh] w-full px-2 sm:px-4 py-6 space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Call Logs</h1>
       </div>
 
-      {/* Stats Row + RUNNING Button */}
-      <div className="flex flex-row flex-wrap gap-4 w-full items-center">
-        <div className="rounded-lg bg-muted shadow p-4 flex flex-col justify-center min-w-[180px]">
+      {/* Stats Row (includes status card) */}
+      <div className="flex flex-wrap w-full gap-x-6 gap-y-4 justify-between items-stretch">
+        {/* Total Calls */}
+        <div className="rounded-lg bg-muted shadow p-4 flex flex-col justify-center flex-1 min-w-[170px]">
           <span className="text-sm font-medium text-muted-foreground">
             Total Calls
           </span>
@@ -170,7 +177,8 @@ export default function Dashboard() {
             <span className="text-2xl font-bold mt-1">{callLogs.length}</span>
           )}
         </div>
-        <div className="rounded-lg bg-muted shadow p-4 flex flex-col justify-center min-w-[180px]">
+        {/* Unique Users */}
+        <div className="rounded-lg bg-muted shadow p-4 flex flex-col justify-center flex-1 min-w-[170px]">
           <span className="text-sm font-medium text-muted-foreground">
             Unique Users
           </span>
@@ -182,7 +190,8 @@ export default function Dashboard() {
             </span>
           )}
         </div>
-        <div className="rounded-lg bg-muted shadow p-4 flex flex-col justify-center min-w-[180px]">
+        {/* Avg Duration */}
+        <div className="rounded-lg bg-muted shadow p-4 flex flex-col justify-center flex-1 min-w-[170px]">
           <span className="text-sm font-medium text-muted-foreground">
             Avg. Duration
           </span>
@@ -199,7 +208,8 @@ export default function Dashboard() {
             </span>
           )}
         </div>
-        <div className="rounded-lg bg-muted shadow p-4 flex flex-col justify-center min-w-[180px]">
+        {/* Last Call */}
+        <div className="rounded-lg bg-muted shadow p-4 flex flex-col justify-center flex-1 min-w-[170px]">
           <span className="text-sm font-medium text-muted-foreground">
             Last Call
           </span>
@@ -217,42 +227,19 @@ export default function Dashboard() {
             </span>
           )}
         </div>
-        {/* RUNNING BUTTON */}
-        <button
-          className={`
-    px-8 py-3 rounded-lg font-bold text-lg shadow-md ml-2
-    transition-all duration-200
-    ${dockerStatus === "loading" ? "bg-gray-500 animate-pulse" : ""}
-    ${
-      dockerStatus === "ok"
-        ? "bg-green-600 text-white"
-        : dockerStatus === "error"
-        ? "bg-red-600 text-white"
-        : ""
-    }
-  `}
-          style={{
-            boxShadow:
-              dockerStatus === "ok"
-                ? "0 0 8px 2px #22c55e"
-                : dockerStatus === "error"
-                ? "0 0 8px 2px #ef4444"
-                : undefined,
-            filter:
-              dockerStatus === "ok"
-                ? "drop-shadow(0 0 5px #22c55e88)"
-                : dockerStatus === "error"
-                ? "drop-shadow(0 0 5px #ef444488)"
-                : undefined,
-          }}
-          disabled={dockerStatus === "loading"}
-        >
-          {dockerStatus === "ok"
-            ? "RUNNING!"
-            : dockerStatus === "error"
-            ? "Not Running"
-            : "Checking..."}
-        </button>
+        {/* Status */}
+        <div className="rounded-lg bg-muted shadow p-4 flex flex-col justify-center flex-1 min-w-[170px]">
+          <span className="text-sm font-medium text-muted-foreground">
+            Status
+          </span>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-2xl font-bold">{statusText}</span>
+            <span
+              className={`inline-block w-4 h-4 rounded-full ${statusColor}`}
+              aria-label={`Status: ${statusText}`}
+            ></span>
+          </div>
+        </div>
       </div>
 
       {/* Table, fills width and scrolls if necessary */}
