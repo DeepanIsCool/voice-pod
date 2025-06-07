@@ -46,46 +46,45 @@ export default function Dashboard() {
   );
 
   // Fetch docker health, reusing previous status for interval requests (avoids flicker)
-useEffect(() => {
-  let cancelled = false;
-  let first = true;
+  useEffect(() => {
+    let cancelled = false;
+    let first = true;
 
-  async function fetchDockerHealth() {
-    if (first) setDockerStatus("loading");
-    try {
-      const headers = getAuthHeaders();
-      const response = await fetch(
-        "https://ai.rajatkhandelwal.com/dockerhealth",
-        { headers }
-      );
-      // Try to parse JSON, but if it fails or status is not 'ok', treat as error
-      let data;
+    async function fetchDockerHealth() {
+      if (first) setDockerStatus("loading");
       try {
-        data = await response.json();
-      } catch {
-        data = null;
-      }
-      if (!cancelled) {
-        if (data && data.status === "ok") {
-          setDockerStatus("ok");
-        } else {
-          setDockerStatus("error");
+        const headers = getAuthHeaders();
+        const response = await fetch(
+          "https://ai.rajatkhandelwal.com/dockerhealth",
+          { headers }
+        );
+        // Try to parse JSON, but if it fails or status is not 'ok', treat as error
+        let data;
+        try {
+          data = await response.json();
+        } catch {
+          data = null;
         }
+        if (!cancelled) {
+          if (data && data.status === "ok") {
+            setDockerStatus("ok");
+          } else {
+            setDockerStatus("error");
+          }
+        }
+      } catch {
+        if (!cancelled) setDockerStatus("error");
       }
-    } catch {
-      if (!cancelled) setDockerStatus("error");
+      first = false;
     }
-    first = false;
-  }
 
-  fetchDockerHealth();
-  const interval = setInterval(fetchDockerHealth, 15000);
-  return () => {
-    cancelled = true;
-    clearInterval(interval);
-  };
-}, []);
-
+    fetchDockerHealth();
+    const interval = setInterval(fetchDockerHealth, 15000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -152,7 +151,6 @@ useEffect(() => {
     interval = setInterval(fetchCallLogs, 60000);
     return () => clearInterval(interval);
   }, [toast]);
-
 
   return (
     <div className="flex flex-col h-full min-h-[80vh] w-full px-2 sm:px-4 py-6 space-y-8">
@@ -222,17 +220,17 @@ useEffect(() => {
         {/* RUNNING BUTTON */}
         <button
           className={`
-            px-8 py-3 rounded-lg font-bold text-lg shadow-md ml-2
-            transition-all duration-200
-            ${dockerStatus === "loading" ? "bg-gray-500 animate-pulse" : ""}
-            ${
-              dockerStatus === "ok"
-                ? "bg-green-600 text-white"
-                : dockerStatus === "error"
-                ? "bg-red-600 text-white"
-                : ""
-            }
-          `}
+    px-8 py-3 rounded-lg font-bold text-lg shadow-md ml-2
+    transition-all duration-200
+    ${dockerStatus === "loading" ? "bg-gray-500 animate-pulse" : ""}
+    ${
+      dockerStatus === "ok"
+        ? "bg-green-600 text-white"
+        : dockerStatus === "error"
+        ? "bg-red-600 text-white"
+        : ""
+    }
+  `}
           style={{
             boxShadow:
               dockerStatus === "ok"
@@ -249,7 +247,11 @@ useEffect(() => {
           }}
           disabled={dockerStatus === "loading"}
         >
-          RUNNING
+          {dockerStatus === "ok"
+            ? "RUNNING!"
+            : dockerStatus === "error"
+            ? "Not Running"
+            : "Checking..."}
         </button>
       </div>
 
