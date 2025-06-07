@@ -250,10 +250,10 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
       header: "Duration",
       cell: ({ row }) => <div>{row.getValue("duration")}s</div>,
     },
-    {
-      accessorKey: "channel",
-      header: "Channel Type",
-    },
+    // {
+    //   accessorKey: "channel",
+    //   header: "Channel Type",
+    // },
     {
       accessorKey: "cost",
       header: "Cost",
@@ -268,25 +268,25 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
         </div>
       ),
     },
-    {
-      accessorKey: "endreason",
-      header: "End Reason",
-      cell: ({ row }) => (
-        <div>
-          {row.getValue("endreason") || row.original.disposition || "-"}
-        </div>
-      ),
-    },
-    {
-      accessorKey: "sessionstatus",
-      header: "Session Status",
-      cell: ({ row }) => <div>{row.getValue("sessionstatus") ?? "ended"}</div>,
-    },
-    {
-      accessorKey: "usersentiment",
-      header: "User Sentiment",
-      cell: ({ row }) => <div>{row.getValue("usersentiment") ?? "-"}</div>,
-    },
+    // {
+    //   accessorKey: "endreason",
+    //   header: "End Reason",
+    //   cell: ({ row }) => (
+    //     <div>
+    //       {row.getValue("endreason") || row.original.disposition || "-"}
+    //     </div>
+    //   ),
+    // },
+    // {
+    //   accessorKey: "sessionstatus",
+    //   header: "Session Status",
+    //   cell: ({ row }) => <div>{row.getValue("sessionstatus") ?? "ended"}</div>,
+    // },
+    // {
+    //   accessorKey: "usersentiment",
+    //   header: "User Sentiment",
+    //   cell: ({ row }) => <div>{row.getValue("usersentiment") ?? "-"}</div>,
+    // },
     {
       accessorKey: "from",
       header: "From",
@@ -301,18 +301,18 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
         <div>{row.getValue("to") || row.original.dst || "-"}</div>
       ),
     },
-    {
-      accessorKey: "sessionoutcome",
-      header: "Session Outcome",
-      cell: ({ row }) => (
-        <div>{row.getValue("sessionoutcome") ?? "Unsuccessful"}</div>
-      ),
-    },
-    {
-      accessorKey: "latency",
-      header: "End to End Latency",
-      cell: ({ row }) => <div>{row.getValue("latency") ?? "-"}</div>,
-    },
+    // {
+    //   accessorKey: "sessionoutcome",
+    //   header: "Session Outcome",
+    //   cell: ({ row }) => (
+    //     <div>{row.getValue("sessionoutcome") ?? "Unsuccessful"}</div>
+    //   ),
+    // },
+    // {
+    //   accessorKey: "latency",
+    //   header: "End to End Latency",
+    //   cell: ({ row }) => <div>{row.getValue("latency") ?? "-"}</div>,
+    // },
   ];
 
   const table = useReactTable({
@@ -331,7 +331,7 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
   });
 
   return (
-    <div className="flex flex-col h-full w-full space-y-4">
+    <div className="flex flex-col max-w-12xl h-full w-full space-y-4">
       <div className="flex items-center justify-between p-4">
         <Input
           placeholder="Search all columns..."
@@ -341,25 +341,23 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
         />
       </div>
       <div className="w-full overflow-x-auto">
-        <Table className="min-w-full">
+        <Table className="w-full" style={{ tableLayout: "auto" }}>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead
-                      key={header.id}
-                      className="px-4 py-2 whitespace-nowrap text-left text-base font-semibold"
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  );
-                })}
+                {headerGroup.headers.map((header) => (
+                  <TableHead
+                    key={header.id}
+                    className="px-4 py-2 whitespace-nowrap text-left text-base font-semibold"
+                  >
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </TableHead>
+                ))}
               </TableRow>
             ))}
           </TableHeader>
@@ -398,6 +396,7 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
           </TableBody>
         </Table>
       </div>
+
       <div className="flex items-center justify-end space-x-2 p-4">
         <Button
           variant="outline"
