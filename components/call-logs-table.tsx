@@ -77,12 +77,17 @@ function AudioPlayer({ audioUrl }: { audioUrl: string }) {
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
 
+  // Fixes seeking responsiveness
+  const isSeeking = useRef(false);
+
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    const updateTime = () => setCurrentTime(audio.currentTime);
-    const updateDuration = () => setDuration(audio.duration);
+    const updateTime = () => {
+      if (!isSeeking.current) setCurrentTime(audio.currentTime);
+    };
+    const updateDuration = () => setDuration(audio.duration || 0);
     const handleEnded = () => setIsPlaying(false);
 
     audio.addEventListener("timeupdate", updateTime);
@@ -104,11 +109,14 @@ function AudioPlayer({ audioUrl }: { audioUrl: string }) {
     setIsPlaying(!isPlaying);
   };
 
+  // Instantly seek anywhere
   const handleSeek = (value: number[]) => {
+    isSeeking.current = true;
     const audio = audioRef.current;
     if (!audio) return;
     audio.currentTime = value[0];
     setCurrentTime(value[0]);
+    isSeeking.current = false;
   };
 
   const handleVolumeChange = (value: number[]) => {
@@ -138,16 +146,13 @@ function AudioPlayer({ audioUrl }: { audioUrl: string }) {
       <audio ref={audioRef} src={audioUrl} preload="metadata" />
       <div className="flex items-center gap-4">
         <Button variant="outline" size="icon" onClick={togglePlayPause}>
-          {isPlaying ? (
-            <Pause className="w-5 h-5" />
-          ) : (
-            <Play className="w-5 h-5" />
-          )}
+          {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
         </Button>
         <Slider
           value={[currentTime]}
+          min={0}
           max={duration || 1}
-          step={1}
+          step={0.01}
           onValueChange={handleSeek}
           className="flex-1 mx-2"
         />
@@ -159,6 +164,7 @@ function AudioPlayer({ audioUrl }: { audioUrl: string }) {
           <Slider
             value={[volume]}
             max={1}
+            min={0}
             step={0.01}
             onValueChange={handleVolumeChange}
           />
@@ -167,13 +173,10 @@ function AudioPlayer({ audioUrl }: { audioUrl: string }) {
           variant="ghost"
           size="icon"
           onClick={async () => {
-            // Directly download the audio file using axios and save as .wav
             const axios = (await import("axios")).default;
             const fileName = audioUrl.split("/").pop() || "audio.wav";
             try {
-              const response = await axios.get(audioUrl, {
-                responseType: "blob",
-              });
+              const response = await axios.get(audioUrl, { responseType: "blob" });
               const url = window.URL.createObjectURL(new Blob([response.data]));
               const link = document.createElement("a");
               link.href = url;
@@ -187,7 +190,16 @@ function AudioPlayer({ audioUrl }: { audioUrl: string }) {
             }
           }}
         >
-          {/* Download SVG icon */}
+          {/* Download SVG */}
+          <svg
+            className="w-5 h-5 text-gray-500"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+          >
+            <path d="M12 5v14m0 0l-5-5m5 5l5-5" />
+          </svg>
         </Button>
       </div>
     </div>
@@ -388,6 +400,7 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
         </Table>
       </div>
 
+      {/* Pagination Controls with Current Page */}
       <div className="flex items-center justify-end space-x-2 p-4">
         <Button
           variant="outline"
@@ -398,8 +411,7 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
           Previous
         </Button>
         <span className="text-sm font-mono opacity-80 select-none">
-          Page {table.getState().pagination.pageIndex + 1} of{" "}
-          {table.getPageCount()}
+          Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
         </span>
         <Button
           variant="outline"
