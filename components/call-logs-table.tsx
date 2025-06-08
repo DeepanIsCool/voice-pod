@@ -397,6 +397,10 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
         >
           Previous
         </Button>
+        <span className="text-sm font-mono opacity-80 select-none">
+          Page {table.getState().pagination.pageIndex + 1} of{" "}
+          {table.getPageCount()}
+        </span>
         <Button
           variant="outline"
           size="sm"
