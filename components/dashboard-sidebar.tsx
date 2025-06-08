@@ -41,7 +41,13 @@ export function DashboardSidebar() {
     <Sidebar>
       <SidebarHeader className="flex items-center justify-between">
         <div className="flex items-center gap-2 px-4 py-2">
-          <div className="font-semibold">Admin Panel</div>
+          <img
+            src="/favicon.png"
+            alt="Logo"
+            className="w-8 h-8 drop-shadow-[0_0_20px_rgba(56,189,248,0.85)]"
+            style={{ borderRadius: '0.5rem' }}
+          />
+          <div className="font-semibold text-2xl">Bol Bachhan</div>
         </div>
         <ModeToggle />
       </SidebarHeader>
