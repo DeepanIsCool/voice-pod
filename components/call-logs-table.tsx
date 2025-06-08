@@ -166,19 +166,28 @@ function AudioPlayer({ audioUrl }: { audioUrl: string }) {
         <Button
           variant="ghost"
           size="icon"
-          asChild
+          onClick={async () => {
+            // Directly download the audio file using axios and save as .wav
+            const axios = (await import("axios")).default;
+            const fileName = audioUrl.split("/").pop() || "audio.wav";
+            try {
+              const response = await axios.get(audioUrl, {
+                responseType: "blob",
+              });
+              const url = window.URL.createObjectURL(new Blob([response.data]));
+              const link = document.createElement("a");
+              link.href = url;
+              link.setAttribute("download", fileName);
+              document.body.appendChild(link);
+              link.click();
+              link.parentNode?.removeChild(link);
+              window.URL.revokeObjectURL(url);
+            } catch (err) {
+              console.error("Failed to download audio", err);
+            }
+          }}
         >
-          <a href={audioUrl} download>
-            <svg
-              className="w-5 h-5 text-gray-500"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-            >
-              <path d="M12 5v14m0 0l-5-5m5 5l5-5" />
-            </svg>
-          </a>
+          {/* Download SVG icon */}
         </Button>
       </div>
     </div>
@@ -300,8 +309,7 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
   });
 
   // Transcript for selectedLog (to copy)
-  const transcriptArr =
-    selectedLog?.summary?.[0]?.transcription ?? [];
+  const transcriptArr = selectedLog?.summary?.[0]?.transcription ?? [];
   const transcriptText = transcriptArr
     .map((msg) => `${msg.role}: ${msg.content}`)
     .join("\n");
