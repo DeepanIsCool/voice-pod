@@ -30,7 +30,7 @@ export function DashboardSidebar() {
       isActive: pathname === "/dashboard",
     },
     {
-      title: "Prompt Management",
+      title: "Agent Configuration",
       href: "/dashboard/prompt",
       icon: FileText,
       isActive: pathname === "/dashboard/prompt",
