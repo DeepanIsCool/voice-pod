@@ -275,7 +275,7 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
         const date = new Date(row.getValue("start"));
         return (
           <div>
-            {date.toLocaleDateString()} {date.toLocaleTimeString()}
+            {date.toLocaleDateString()} {date.toLocaleTimeString([], { hour12: false })}
           </div>
         );
       },
