@@ -359,7 +359,7 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
     <div className="flex flex-col max-w-12xl h-full w-full space-y-4">
       <div className="flex items-center justify-between p-4">
         <Input
-          placeholder="Search all columns..."
+          placeholder="Search by number"
           value={globalFilter ?? ""}
           onChange={(event) => setGlobalFilter(event.target.value)}
           className="max-w-sm"
