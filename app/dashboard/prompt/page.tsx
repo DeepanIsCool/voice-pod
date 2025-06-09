@@ -28,6 +28,7 @@ import { Loader2, RotateCcw, Save } from "lucide-react";
 const MODEL_OPTIONS = [
   { value: "gemma2-9b-it", label: "Gemma2-9B-IT" },
   { value: "meta-llama/llama-guard-4-12b", label: "Llama Guard 4-12B" },
+  { value: "meta-llama/Llama-4-Maverick-17B-128E-Instruct", label: "Llama 4 Maverick 17B Instruct" },
   { value: "llama-3.3-70b-versatile", label: "Llama 3.3-70B Versatile" },
   { value: "llama-3.1-8b-instant", label: "Llama 3.1-8B Instant" },
   { value: "llama3-70b-8192", label: "Llama3-70B-8192" },
