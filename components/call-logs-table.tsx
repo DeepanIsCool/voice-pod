@@ -248,6 +248,16 @@ function ConversationBubble({
   );
 }
 
+// Custom global filter for src and dst only
+import { Row, FilterFn } from "@tanstack/react-table";
+
+const srcDstGlobalFilter: FilterFn<CallLog> = (row, _columnId, filterValue) => {
+  const src = row.original.src?.toLowerCase() ?? "";
+  const dst = row.original.dst?.toLowerCase() ?? "";
+  const value = filterValue.toLowerCase();
+  return src.includes(value) || dst.includes(value);
+};
+
 // ---- MAIN TABLE COMPONENT ----
 export function CallLogsTable({ data }: CallLogsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -292,16 +302,27 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
     {
       accessorKey: "from",
       header: "From",
-      cell: ({ row }) => (
-        <div>{row.getValue("from") || row.original.src || "-"}</div>
-      ),
+      cell: ({ row }) => {
+        const raw = row.getValue("from") || row.original.src;
+        // Remove leading zero if present
+        let formatted = typeof raw === "string" && raw.startsWith("0") ? raw.slice(1) : raw;
+        if (!formatted) formatted = "-";
+        return <div>{String(formatted)}</div>;
+      },
     },
     {
       accessorKey: "to",
       header: "To",
-      cell: ({ row }) => (
-        <div>{row.getValue("to") || row.original.dst || "-"}</div>
-      ),
+      cell: ({ row }) => {
+        const raw = row.getValue("to") || row.original.dst;
+        // Remove two leading zeros if present
+        let formatted = raw;
+        if (typeof raw === "string" && raw.startsWith("00")) {
+          formatted = raw.slice(2);
+        }
+        if (!formatted) formatted = "-";
+        return <div>{String(formatted)}</div>;
+      },
     },
   ];
 
@@ -318,6 +339,7 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
       sorting,
       globalFilter,
     },
+    globalFilterFn: srcDstGlobalFilter, // Only search src and dst
   });
 
   // Transcript for selectedLog (to copy)
