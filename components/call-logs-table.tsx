@@ -10,6 +10,7 @@ import {
   type SortingState,
   useReactTable,
   getFilteredRowModel,
+  FilterFn
 } from "@tanstack/react-table";
 import { Play, Pause, Volume2, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,10 @@ import {
 } from "@/components/ui/dialog";
 
 // ---- TYPES ----
+interface Transcription {
+  role: string;
+  content: string;
+}
 interface CallLog {
   id: string;
   name: string | undefined;
@@ -52,12 +57,12 @@ interface CallLog {
   amaflags: string | undefined;
   uniqueid: string | undefined;
   userfield: string | undefined;
-  summary: Array<{
-    transcription: Array<{
-      role: string;
-      content: string;
-    }>;
-  }>;
+  cost?: string | number;
+  sessionid?: string;
+  from?: string;
+  to?: string;
+  Summary?: Array<{ transcription: Transcription[] }>;
+  summary?: Array<{ transcription: Transcription[] }>;
 }
 
 interface CallLogsTableProps {
@@ -248,9 +253,7 @@ function ConversationBubble({
   );
 }
 
-// Custom global filter for src and dst only
-import { Row, FilterFn } from "@tanstack/react-table";
-
+// Only search src and dst for filtering
 const srcDstGlobalFilter: FilterFn<CallLog> = (row, _columnId, filterValue) => {
   const src = row.original.src?.toLowerCase() ?? "";
   const dst = row.original.dst?.toLowerCase() ?? "";
@@ -263,39 +266,80 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [selectedLog, setSelectedLog] = useState<CallLog | null>(null);
-
-  // Copy logic is here (inside dialog)
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied">("idle");
 
   const columns: ColumnDef<CallLog>[] = [
     {
-      accessorKey: "start",
+      accessorKey: "date",
+      header: "Date",
+      cell: ({ row }) => {
+        // Use row.original.start
+        const date = new Date(row.original.start);
+        const day = date.getDate();
+        // Suffix for day
+        const daySuffix =
+          day % 10 === 1 && day !== 11
+            ? "st"
+            : day % 10 === 2 && day !== 12
+            ? "nd"
+            : day % 10 === 3 && day !== 13
+            ? "rd"
+            : "th";
+        const month = date.toLocaleString("en-US", { month: "short" });
+        const year = date.getFullYear();
+        return (
+          <span>
+            {`${day}${daySuffix} ${month} ${year}`}
+          </span>
+        );
+      },
+    },
+    {
+      accessorKey: "time",
       header: "Time",
       cell: ({ row }) => {
-        const date = new Date(row.getValue("start"));
+        const date = new Date(row.original.start);
+        // 12hr format, lowercase am/pm
         return (
-          <div>
-            {date.toLocaleDateString()} {date.toLocaleTimeString([], { hour12: false })}
-          </div>
+          <span>
+            {date
+              .toLocaleTimeString("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+              })
+              .replace("AM", "am")
+              .replace("PM", "pm")}
+          </span>
         );
       },
     },
     {
       accessorKey: "duration",
       header: "Duration",
-      cell: ({ row }) => <div>{row.getValue("duration")}s</div>,
+      cell: ({ row }) => {
+        const totalSeconds = Number(row.original.duration);
+        const mins = Math.floor(totalSeconds / 60);
+        const secs = totalSeconds % 60;
+        return (
+          <span>
+            {mins > 0 ? `${mins}m ` : ""}
+            {secs}s
+          </span>
+        );
+      },
     },
     {
       accessorKey: "cost",
       header: "Cost",
-      cell: ({ row }) => <div>{row.getValue("cost") ?? "$0.00"}</div>,
+      cell: ({ row }) => <div>{row.original.cost ?? "$0.00"}</div>,
     },
     {
       accessorKey: "sessionid",
       header: "Session ID",
       cell: ({ row }) => (
         <div className="truncate max-w-[120px]">
-          {row.getValue("sessionid") ?? row.original.id}
+          {row.original.sessionid ?? row.original.id}
         </div>
       ),
     },
@@ -303,8 +347,7 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
       accessorKey: "from",
       header: "From",
       cell: ({ row }) => {
-        const raw = row.getValue("from") || row.original.src;
-        // Remove leading zero if present
+        const raw = row.original.from || row.original.src;
         let formatted = typeof raw === "string" && raw.startsWith("0") ? raw.slice(1) : raw;
         if (!formatted) formatted = "-";
         return <div>{String(formatted)}</div>;
@@ -314,8 +357,7 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
       accessorKey: "to",
       header: "To",
       cell: ({ row }) => {
-        const raw = row.getValue("to") || row.original.dst;
-        // Remove two leading zeros if present
+        const raw = row.original.to || row.original.dst;
         let formatted = raw;
         if (typeof raw === "string" && raw.startsWith("00")) {
           formatted = raw.slice(2);
@@ -339,11 +381,14 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
       sorting,
       globalFilter,
     },
-    globalFilterFn: srcDstGlobalFilter, // Only search src and dst
+    globalFilterFn: srcDstGlobalFilter,
   });
 
-  // Transcript for selectedLog (to copy)
-  const transcriptArr = selectedLog?.summary?.[0]?.transcription ?? [];
+  // Support both `summary` and `Summary`
+  const transcriptArr =
+    selectedLog?.summary?.[0]?.transcription ||
+    selectedLog?.Summary?.[0]?.transcription ||
+    [];
   const transcriptText = transcriptArr
     .map((msg) => `${msg.role}: ${msg.content}`)
     .join("\n");
@@ -458,8 +503,40 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
               {/* Call Info */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-background rounded-lg p-4 shadow">
                 <div>
+                  <span className="font-medium">Date:</span>
+                  <div>
+                    {(() => {
+                      const date = new Date(selectedLog.start);
+                      const day = date.getDate();
+                      const daySuffix =
+                        day % 10 === 1 && day !== 11
+                          ? "st"
+                          : day % 10 === 2 && day !== 12
+                          ? "nd"
+                          : day % 10 === 3 && day !== 13
+                          ? "rd"
+                          : "th";
+                      const month = date.toLocaleString("en-US", { month: "short" });
+                      const year = date.getFullYear();
+                      return `${day}${daySuffix} ${month} ${year}`;
+                    })()}
+                  </div>
+                </div>
+                <div>
                   <span className="font-medium">Time:</span>
-                  <div>{new Date(selectedLog.start).toLocaleString()}</div>
+                  <div>
+                    {(() => {
+                      const date = new Date(selectedLog.start);
+                      return date
+                        .toLocaleTimeString("en-US", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: true,
+                        })
+                        .replace("AM", "am")
+                        .replace("PM", "pm");
+                    })()}
+                  </div>
                 </div>
                 <div>
                   <span className="font-medium">From:</span>
