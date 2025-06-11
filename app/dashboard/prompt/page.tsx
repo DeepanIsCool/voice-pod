@@ -26,16 +26,33 @@ import { useToast } from "@/components/ui/use-toast";
 import { Loader2, RotateCcw, Save } from "lucide-react";
 
 const MODEL_OPTIONS = [
+  { value: "qwen-qwq-32b", label: "Qwen-QWQ-32B" },
+  { value: "qwen/qwen3-32b", label: "Qwen3-32B" },
+  {
+    value: "deepseek-r1-distill-llama-70b",
+    label: "DeepSeek R1 Distill Llama 70B",
+  },
   { value: "gemma2-9b-it", label: "Gemma2-9B-IT" },
-  { value: "meta-llama/llama-guard-4-12b", label: "Llama Guard 4-12B" },
-  { value: "meta-llama/llama-4-maverick-17b-128e-instruct", label: "Llama 4 Maverick 17B Instruct" },
-  { value: "llama-3.3-70b-versatile", label: "Llama 3.3-70B Versatile" },
+  { value: "compound-beta", label: "Compound Beta" },
+  { value: "distil-whisper-large-v3-en", label: "Distil Whisper Large v3 EN" },
   { value: "llama-3.1-8b-instant", label: "Llama 3.1-8B Instant" },
+  { value: "llama-3.3-70b-versatile", label: "Llama 3.3-70B Versatile" },
+  { value: "llama-guard-3-8b", label: "Llama Guard 3-8B" },
   { value: "llama3-70b-8192", label: "Llama3-70B-8192" },
   { value: "llama3-8b-8192", label: "Llama3-8B-8192" },
+  {
+    value: "meta-llama/llama-4-maverick-17b-128e-instruct",
+    label: "Llama 4 Maverick 17B 128E Instruct",
+  },
+  { value: "meta-llama/llama-4-scout-17b-16e-instruct", label: "Llama 4 Scout 17B 16E Instruct" },
+  { value: "meta-llama/llama-guard-4-12b", label: "Llama Guard 4-12B" },
+  { value: "meta-llama/llama-prompt-guard-2-22m", label: "Llama Prompt Guard 2-22M" },
+  { value: "meta-llama/llama-prompt-guard-2-86m", label: "Llama Prompt Guard 2-86M" },
+  { value: "mistral-saba-24b", label: "Mistral Saba 24B" },
   { value: "whisper-large-v3", label: "Whisper Large v3" },
   { value: "whisper-large-v3-turbo", label: "Whisper Large v3 Turbo" },
-  { value: "distil-whisper-large-v3-en", label: "Distil Whisper Large v3 EN" },
+  { value: "playai-tts-1", label: "PlayAI TTS-1" },
+  { value: "playai-tts-arabic", label: "PlayAI TTS Arabic" },
 ];
 
 const STT_OPTIONS = [

@@ -299,13 +299,14 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
       header: "Time",
       cell: ({ row }) => {
         const date = new Date(row.original.start);
-        // 12hr format, lowercase am/pm
+        // 12hr format, lowercase am/pm, with seconds
         return (
           <span>
             {date
               .toLocaleTimeString("en-US", {
                 hour: "2-digit",
                 minute: "2-digit",
+                second: "2-digit",
                 hour12: true,
               })
               .replace("AM", "am")
