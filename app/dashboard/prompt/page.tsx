@@ -458,33 +458,46 @@ export default function PromptManagement() {
                             <SelectTrigger className="w-full max-w-xs bg-background border border-border text-foreground">
                               <SelectValue placeholder="Select Model" />
                             </SelectTrigger>
-                            <SelectContent>
-                              {MODEL_OPTIONS.map((opt) => (
-                                <SelectItem key={opt.value} value={opt.value}>
-                                  <div className="flex flex-col gap-1 w-full">
-                                    <span className="font-semibold">
-                                      {opt.label}
-                                    </span>
-                                    {(opt.inputPrice || opt.outputPrice) && (
-                                      <div className="flex gap-2 text-xs text-zinc-500 pl-5">
-                                        <span>
-                                          Input:{" "}
-                                          <span className="font-mono text-zinc-300">
-                                            {opt.inputPrice || "—"}
-                                          </span>
-                                        </span>
-                                        <span>
-                                          Output:{" "}
-                                          <span className="font-mono text-zinc-300">
-                                            {opt.outputPrice || "—"}
-                                          </span>
-                                        </span>
-                                      </div>
-                                    )}
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
+<SelectContent>
+  {MODEL_OPTIONS.map((opt) => (
+    <SelectItem key={opt.value} value={opt.value}>
+      <div className="flex flex-col gap-1 w-full">
+        <span className="font-semibold">{opt.label}</span>
+        {(opt.inputPrice || opt.outputPrice) && (
+          <div className="flex gap-2 text-xs pl-5">
+            <span>
+              Input:{" "}
+              <span
+                className="
+                  font-mono
+                  text-zinc-600
+                  dark:text-zinc-300
+                  font-semibold
+                "
+              >
+                {opt.inputPrice || "—"}
+              </span>
+            </span>
+            <span>
+              Output:{" "}
+              <span
+                className="
+                  font-mono
+                  text-zinc-600
+                  dark:text-zinc-300
+                  font-semibold
+                "
+              >
+                {opt.outputPrice || "—"}
+              </span>
+            </span>
+          </div>
+        )}
+      </div>
+    </SelectItem>
+  ))}
+</SelectContent>
+
                           </Select>
                         )}
                       />
