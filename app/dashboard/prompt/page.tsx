@@ -26,48 +26,156 @@ import { useToast } from "@/components/ui/use-toast";
 import { Loader2, RotateCcw, Save } from "lucide-react";
 
 const MODEL_OPTIONS = [
-  { value: "qwen-qwq-32b", label: "Qwen-QWQ-32B" },
-  { value: "qwen/qwen3-32b", label: "Qwen3-32B" },
+  {
+    value: "qwen-qwq-32b",
+    label: "Qwen-QWQ-32B",
+    inputPrice: "$0.29",
+    outputPrice: "$0.39",
+  },
+  {
+    value: "qwen/qwen3-32b",
+    label: "Qwen3-32B",
+    inputPrice: "$0.29",
+    outputPrice: "$0.59",
+  },
   {
     value: "deepseek-r1-distill-llama-70b",
     label: "DeepSeek R1 Distill Llama 70B",
+    inputPrice: "$0.75",
+    outputPrice: "$0.99",
   },
-  { value: "gemma2-9b-it", label: "Gemma2-9B-IT" },
-  { value: "compound-beta", label: "Compound Beta" },
-  { value: "distil-whisper-large-v3-en", label: "Distil Whisper Large v3 EN" },
-  { value: "llama-3.1-8b-instant", label: "Llama 3.1-8B Instant" },
-  { value: "llama-3.3-70b-versatile", label: "Llama 3.3-70B Versatile" },
-  { value: "llama-guard-3-8b", label: "Llama Guard 3-8B" },
-  { value: "llama3-70b-8192", label: "Llama3-70B-8192" },
-  { value: "llama3-8b-8192", label: "Llama3-8B-8192" },
+  {
+    value: "gemma2-9b-it",
+    label: "Gemma2-9B-IT",
+    inputPrice: "$0.2",
+    outputPrice: "$0.2",
+  },
+  {
+    value: "compound-beta",
+    label: "Compound Beta",
+    inputPrice: "--",
+    outputPrice: "--",
+  },
+  {
+    value: "distil-whisper-large-v3-en",
+    label: "Distil Whisper Large v3 EN",
+    inputPrice: "--",
+    outputPrice: "--",
+  },
+  {
+    value: "llama-3.1-8b-instant",
+    label: "Llama 3.1-8B Instant",
+    inputPrice: "$0.05",
+    outputPrice: "$0.08",
+  },
+  {
+    value: "llama-3.3-70b-versatile",
+    label: "Llama 3.3-70B Versatile",
+    inputPrice: "$0.59",
+    outputPrice: "$0.79",
+  },
+  {
+    value: "llama-guard-3-8b",
+    label: "Llama Guard 3-8B",
+    inputPrice: "$0.2",
+    outputPrice: "$0.2",
+  },
+  {
+    value: "llama3-70b-8192",
+    label: "Llama3-70B-8192",
+    inputPrice: "$0.59",
+    outputPrice: "$0.79",
+  },
+  {
+    value: "llama3-8b-8192",
+    label: "Llama3-8B-8192",
+    inputPrice: "$0.05",
+    outputPrice: "$0.08",
+  },
   {
     value: "meta-llama/llama-4-maverick-17b-128e-instruct",
     label: "Llama 4 Maverick 17B 128E Instruct",
+    inputPrice: "$0.2",
+    outputPrice: "$0.6",
   },
-  { value: "meta-llama/llama-4-scout-17b-16e-instruct", label: "Llama 4 Scout 17B 16E Instruct" },
-  { value: "meta-llama/llama-guard-4-12b", label: "Llama Guard 4-12B" },
-  { value: "meta-llama/llama-prompt-guard-2-22m", label: "Llama Prompt Guard 2-22M" },
-  { value: "meta-llama/llama-prompt-guard-2-86m", label: "Llama Prompt Guard 2-86M" },
-  { value: "mistral-saba-24b", label: "Mistral Saba 24B" },
-  { value: "whisper-large-v3", label: "Whisper Large v3" },
-  { value: "whisper-large-v3-turbo", label: "Whisper Large v3 Turbo" },
-  { value: "playai-tts-1", label: "PlayAI TTS-1" },
-  { value: "playai-tts-arabic", label: "PlayAI TTS Arabic" },
+  {
+    value: "meta-llama/llama-4-scout-17b-16e-instruct",
+    label: "Llama 4 Scout 17B 16E Instruct",
+    inputPrice: "$0.11",
+    outputPrice: "$0.34",
+  },
+  {
+    value: "meta-llama/llama-guard-4-12b",
+    label: "Llama Guard 4-12B",
+    inputPrice: "$0.2",
+    outputPrice: "$0.2",
+  },
+  {
+    value: "meta-llama/llama-prompt-guard-2-22m",
+    label: "Llama Prompt Guard 2-22M",
+    inputPrice: "--",
+    outputPrice: "--",
+  },
+  {
+    value: "meta-llama/llama-prompt-guard-2-86m",
+    label: "Llama Prompt Guard 2-86M",
+    inputPrice: "--",
+    outputPrice: "--",
+  },
+  {
+    value: "mistral-saba-24b",
+    label: "Mistral Saba 24B",
+    inputPrice: "$0.79",
+    outputPrice: "$0.79",
+  },
+  {
+    value: "whisper-large-v3",
+    label: "Whisper Large v3",
+    inputPrice: "--",
+    outputPrice: "--",
+  },
+  {
+    value: "whisper-large-v3-turbo",
+    label: "Whisper Large v3 Turbo",
+    inputPrice: "--",
+    outputPrice: "--",
+  },
+  {
+    value: "playai-tts-1",
+    label: "PlayAI TTS-1",
+    inputPrice: "--",
+    outputPrice: "--",
+  },
+  {
+    value: "playai-tts-arabic",
+    label: "PlayAI TTS Arabic",
+    inputPrice: "--",
+    outputPrice: "--",
+  },
 ];
 
 const STT_OPTIONS = [
-  { value: "nova-3-general", label: "Nova 3" },
-  { value: "nova-2-general", label: "Nova 2" },
+  { value: "nova-3-general", label: "Nova 3", inputPrice: "", outputPrice: "" },
+  { value: "nova-2-general", label: "Nova 2", inputPrice: "", outputPrice: "" },
 ];
 
 const TTS_OPTIONS = [
-  { value: "gpt-4o-mini-tts", label: "GPT-4o Mini TTS" },
-  { value: "tts-1", label: "TTS-1" },
-  { value: "tts-1-hd", label: "TTS-1 HD" },
+  {
+    value: "gpt-4o-mini-tts",
+    label: "GPT-4o Mini TTS",
+    inputPrice: "$0.60",
+    outputPrice: "$12.00",
+  },
+  { value: "tts-1", label: "TTS-1", inputPrice: "", outputPrice: "" },
+  { value: "tts-1-hd", label: "TTS-1 HD", inputPrice: "", outputPrice: "" },
 ];
 
 const VOICE_OPTIONS = [
   { value: "alloy", label: "Alloy" },
+  { value: "ash", label: "Ash" },
+  { value: "ballad", label: "Ballad" },
+  { value: "coral", label: "Coral" },
+  { value: "sage", label: "Sage" },
   { value: "echo", label: "Echo" },
   { value: "fable", label: "Fable" },
   { value: "onyx", label: "Onyx" },
@@ -353,7 +461,27 @@ export default function PromptManagement() {
                             <SelectContent>
                               {MODEL_OPTIONS.map((opt) => (
                                 <SelectItem key={opt.value} value={opt.value}>
-                                  {opt.label}
+                                  <div className="flex flex-col gap-1 w-full">
+                                    <span className="font-semibold">
+                                      {opt.label}
+                                    </span>
+                                    {(opt.inputPrice || opt.outputPrice) && (
+                                      <div className="flex gap-2 text-xs text-zinc-500 pl-5">
+                                        <span>
+                                          Input:{" "}
+                                          <span className="font-mono text-zinc-300">
+                                            {opt.inputPrice || "—"}
+                                          </span>
+                                        </span>
+                                        <span>
+                                          Output:{" "}
+                                          <span className="font-mono text-zinc-300">
+                                            {opt.outputPrice || "—"}
+                                          </span>
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
                                 </SelectItem>
                               ))}
                             </SelectContent>
