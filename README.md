@@ -1,4 +1,4 @@
-# voice-pod
+# Voice Pod
 
 A modern web application built with Next.js, TypeScript, and Tailwind CSS, designed to provide a voice-based dashboard experience. This repository is organized for scalability and developer productivity, featuring modular components, custom React hooks, and a clear project structure.
 
