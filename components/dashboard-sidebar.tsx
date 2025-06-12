@@ -4,7 +4,7 @@
 
 import { usePathname } from "next/navigation"
 import Link from "next/link"
-import { LayoutDashboard, FileText, LogOut, PhoneCall } from "lucide-react"
+import { LayoutDashboard, FileText, LogOut, PhoneCall, BarChart } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -35,6 +35,12 @@ export function DashboardSidebar() {
       icon: FileText,
       isActive: pathname === "/dashboard/prompt",
     },
+    {
+      title: "Analytics",
+      href: "/dashboard/analytics",
+      icon: BarChart,
+      isActive: pathname === "/dashboard/analytics",
+    }
   ]
 
   return (
