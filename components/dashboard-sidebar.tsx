@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/lib/auth"
 import { ModeToggle } from "@/components/mode-toggle"
+import { Users } from "lucide-react"
 
 export function DashboardSidebar() {
   const pathname = usePathname()
@@ -40,6 +41,12 @@ export function DashboardSidebar() {
       href: "/dashboard/analytics",
       icon: BarChart,
       isActive: pathname === "/dashboard/analytics",
+    },
+    {
+      title: "Lead Management",
+      href: "/dashboard/leads",
+      icon: Users,
+      isActive: pathname === "/dashboard/leads",
     }
   ]
 
