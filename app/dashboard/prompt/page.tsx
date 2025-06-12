@@ -442,7 +442,7 @@ export default function PromptManagement() {
                     </Tooltip>
                   </div>
                   <div className="flex flex-col gap-4">
-                    {/* Model Dropdown */}
+                    {/* Model Dropdown - Fixed */}
                     <div className="flex items-center gap-3">
                       <span className="font-mono min-w-[110px] text-foreground">
                         Model
@@ -458,46 +458,69 @@ export default function PromptManagement() {
                             <SelectTrigger className="w-full max-w-xs bg-background border border-border text-foreground">
                               <SelectValue placeholder="Select Model" />
                             </SelectTrigger>
-<SelectContent>
-  {MODEL_OPTIONS.map((opt) => (
-    <SelectItem key={opt.value} value={opt.value}>
-      <div className="flex flex-col gap-1 w-full">
-        <span className="font-semibold">{opt.label}</span>
-        {(opt.inputPrice || opt.outputPrice) && (
-          <div className="flex gap-2 text-xs pl-5">
-            <span>
-              Input:{" "}
-              <span
-                className="
-                  font-mono
-                  text-zinc-600
-                  dark:text-zinc-300
-                  font-semibold
-                "
-              >
-                {opt.inputPrice || "—"}
-              </span>
-            </span>
-            <span>
-              Output:{" "}
-              <span
-                className="
-                  font-mono
-                  text-zinc-600
-                  dark:text-zinc-300
-                  font-semibold
-                "
-              >
-                {opt.outputPrice || "—"}
-              </span>
-            </span>
-          </div>
-        )}
-      </div>
-    </SelectItem>
-  ))}
-</SelectContent>
+                            <SelectContent className="min-w-[300px]">
+                              {MODEL_OPTIONS.map((opt) => (
+                                <SelectItem key={opt.value} value={opt.value}>
+                                  <div className="flex items-center justify-between w-full">
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span className="font-semibold hover:underline decoration-dotted cursor-help">
+                                          {opt.label}
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <div className="flex flex-col gap-1 p-2">
+                                          {opt.inputPrice !== "--" && (
+                                            <div className="flex justify-between gap-4">
+                                              <span className="text-muted-foreground">
+                                                Input:
+                                              </span>
+                                              <span className="font-mono font-bold">
+                                                {opt.inputPrice}
+                                              </span>
+                                            </div>
+                                          )}
+                                          {opt.outputPrice !== "--" && (
+                                            <div className="flex justify-between gap-4">
+                                              <span className="text-muted-foreground">
+                                                Output:
+                                              </span>
+                                              <span className="font-mono font-bold">
+                                                {opt.outputPrice}
+                                              </span>
+                                            </div>
+                                          )}
+                                          {opt.inputPrice === "--" &&
+                                            opt.outputPrice === "--" && (
+                                              <span className="text-muted-foreground">
+                                                Pricing information not
+                                                available
+                                              </span>
+                                            )}
+                                        </div>
+                                      </TooltipContent>
+                                    </Tooltip>
 
+                                    {/* Show small price indicators inline */}
+                                    {(opt.inputPrice !== "--" ||
+                                      opt.outputPrice !== "--") && (
+                                      <div className="flex gap-1 text-xs text-muted-foreground ml-2">
+                                        {opt.inputPrice !== "--" && (
+                                          <span className="font-mono">
+                                            {opt.inputPrice}
+                                          </span>
+                                        )}
+                                        {opt.outputPrice !== "--" && (
+                                          <span className="font-mono">
+                                            →{opt.outputPrice}
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
                           </Select>
                         )}
                       />
