@@ -424,7 +424,7 @@ function isTerminalStatus(status: string) {
         )}
       </main>
       <Dialog open={userModal.open} onOpenChange={closeUserModal}>
-        <DialogContent className="max-w-lg bg-card border border-border rounded-2xl shadow-2xl">
+        <DialogContent className="max-w-2xl bg-card border border-border rounded-2xl shadow-2xl p-8">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-primary">
               User Details
@@ -434,8 +434,8 @@ function isTerminalStatus(status: string) {
             </DialogDescription>
           </DialogHeader>
           {userModal.lead ? (
-            <div className="flex flex-col gap-4 mt-4">
-              <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+            <div className="flex flex-col gap-6 mt-6">
+              <div className="grid grid-cols-2 gap-x-8 gap-y-4">
                 <div className="text-primary font-mono">ID</div>
                 <div className="text-foreground">{userModal.lead.id}</div>
                 <div className="text-primary font-mono">Date</div>
@@ -455,7 +455,7 @@ function isTerminalStatus(status: string) {
                 <div className="text-primary font-mono">Source</div>
                 <div className="text-foreground">{userModal.lead.source || '-'}</div>
                 <div className="text-primary font-mono">Custom Fields</div>
-                <div className="text-foreground flex flex-col gap-1">
+                <div className="text-foreground flex flex-col gap-2">
                   {parseCustomFields(userModal.lead.customFields).length === 0
                     ? <span>-</span>
                     : parseCustomFields(userModal.lead.customFields).map(field => (
@@ -471,7 +471,7 @@ function isTerminalStatus(status: string) {
               </Button>
             </div>
           ) : (
-            <div className="flex flex-col gap-2 mt-4">
+            <div className="flex flex-col gap-4 mt-6">
               <Skeleton className="h-6 w-1/2" />
               <Skeleton className="h-6 w-1/3" />
               <Skeleton className="h-6 w-1/4" />
