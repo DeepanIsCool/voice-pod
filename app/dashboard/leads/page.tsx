@@ -1,15 +1,15 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getAuthHeaders } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 const API_URL = 'https://ai.rajatkhandelwal.com';
-const AUTH_TOKEN = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im1yaW5tb3loYWxkZXI4NTlAZ21haWwuY29tIiwiaWF0IjoxNzQ5NzM2NjM0fQ.pN9zbmyCn9nKOKkjplIHzIlW0kdSrrKFavJwW_WM8KQ';
 
 type Lead = {
   id: string;
@@ -85,7 +85,7 @@ export default function LeadsDashboardPage() {
     try {
       const res = await fetch(`${API_URL}/leads`, {
         headers: {
-          'Authorization': AUTH_TOKEN,
+          ...getAuthHeaders(),
           'Accept': '*/*',
         },
       });
@@ -135,10 +135,7 @@ const handleCall = async () => {
 
     const res = await fetch(`${API_URL}/makecall`, {
       method: 'POST',
-      headers: {
-        'Authorization': AUTH_TOKEN,
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ numbers: numbers.map(Number) }),
     });
 
@@ -194,10 +191,7 @@ useEffect(() => {
 
       const statusRes = await fetch(`${API_URL}/callstatus`, {
         method: 'POST',
-        headers: {
-          'Authorization': AUTH_TOKEN,
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ callIds }), // send array of call IDs
       });
 
@@ -287,17 +281,19 @@ function isTerminalStatus(status: string) {
   }, [leads, search]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0f172a] to-[#1e293b] text-white flex flex-col">
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
       <header className="px-8 pt-8 pb-4 flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight">Leads Dashboard</h1>
       </header>
       <main className="flex-1 px-8 pb-8 flex flex-col">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
-            <span className="text-sm text-blue-200">
+            <span className="text-sm text-muted-foreground">
               Showing <b>{filteredLeads.length}</b> of <b>{totalLeads}</b> leads
               {selected.size > 0 && (
-                <span className="ml-2 text-xs text-blue-400">| <b>{selected.size}</b> selected</span>
+                <span className="ml-2 text-xs text-primary">
+                  | <b>{selected.size}</b> selected
+                </span>
               )}
             </span>
             <input
@@ -305,13 +301,13 @@ function isTerminalStatus(status: string) {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search by phone number"
-              className="mt-1 sm:mt-0 px-2 py-1 rounded bg-[#1e293b] border border-blue-900 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-56"
+              className="mt-1 sm:mt-0 px-2 py-1 rounded bg-muted border border-border text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary w-full sm:w-56"
             />
           </div>
           <Button
             className={cn(
-              'bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-lg shadow transition',
-              callLoading || selected.size === 0 ? 'opacity-60 cursor-not-allowed' : ''
+              "bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-6 py-2 rounded-lg shadow transition",
+              callLoading || selected.size === 0 ? "opacity-60 cursor-not-allowed" : ""
             )}
             disabled={callLoading || selected.size === 0}
             onClick={handleCall}
@@ -319,11 +315,11 @@ function isTerminalStatus(status: string) {
             {callLoading ? 'Calling...' : 'CALL'}
           </Button>
         </div>
-        <div className="rounded-xl overflow-hidden shadow-lg bg-[#111827] border border-blue-900">
+        <div className="rounded-xl overflow-hidden shadow-lg bg-card border border-border">
           <div className="overflow-x-auto">
             <table className="min-w-full text-left font-mono text-xs">
               <thead>
-                <tr className="bg-[#1e293b] text-blue-200 text-xs">
+                <tr className="bg-muted text-muted-foreground text-xs">
                   <th className="px-2 py-2 w-12"></th>
                   {columns.map(col => (
                     <th key={col.key} className={cn('px-2 py-2 font-semibold text-xs', col.width)}>
@@ -335,7 +331,7 @@ function isTerminalStatus(status: string) {
               <tbody>
                 {loading
                   ? Array.from({ length: 10 }).map((_, i) => (
-                      <tr key={i} className="border-b border-blue-900">
+                      <tr key={i} className="border-b border-border">
                         <td className="px-4 py-3"><Skeleton className="h-5 w-5 rounded" /></td>
                         {columns.map(col => (
                           <td key={col.key} className={cn('px-4 py-3', col.width)}>
@@ -347,64 +343,64 @@ function isTerminalStatus(status: string) {
                   : filteredLeads.map(lead => {
                       const isActive = activeLeadIds.has(lead.id);
                       return (
-                      <tr
-                        key={lead.id}
-                        className={cn(
-                          'border-b border-blue-900 hover:bg-blue-950 transition cursor-pointer group text-xs',
-                          selected.has(lead.id) ? 'bg-blue-900/60' : '',
-                          isActive ? 'opacity-50 pointer-events-none' : ''
-                        )}
-                        tabIndex={0}
-                        onClick={() => openUserModal(lead)}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter') openUserModal(lead);
-                        }}
-                      >
-                        <td className="px-2 py-2">
-                          <Checkbox
-                            checked={selected.has(lead.id)}
-                            onCheckedChange={() => handleSelect(lead.id)}
-                            disabled={isCheckboxDisabled(lead.id) || callLoading || isActive}
-                            aria-label={`Select lead ${lead.firstNameLowerCase} ${lead.lastNameLowerCase}`}
-                            className="border-blue-400 data-[state=checked]:bg-blue-600"
-                            onClick={e => e.stopPropagation()}
-                          />
-                        </td>
-                        <td className={cn('px-2 py-2', columns[0].width)}>{lead.id}</td>
-                        <td className={cn('px-2 py-2', columns[1].width)}>{formatDate(lead.dateAdded)}</td>
-                        <td className={cn('px-2 py-2', columns[2].width)}>
-                          <span className="capitalize">{lead.firstNameLowerCase} {lead.lastNameLowerCase}</span>
-                        </td>
-                        <td className={cn('px-2 py-2', columns[3].width)}>{lead.phone}</td>
-                        <td className={cn('px-2 py-2', columns[4].width)}>
-                          {(() => {
-                            const value = callStatus[lead.id];
-                            return value
-                              ? <span className={cn(
-                                  isTerminalStatus(value)
-                                    ? 'text-red-400'
-                                    : value === 'Ringing'
-                                    ? 'text-yellow-400'
-                                    : value === 'Up'
-                                    ? 'text-green-400'
-                                    : 'text-blue-200'
-                                )}>{value}</span>
-                              : <span className="text-blue-200">-</span>;
-                          })()}
-                        </td>
-                      </tr>
-                    )})}
+                        <tr
+                          key={lead.id}
+                          className={cn(
+                            'border-b border-border hover:bg-accent transition cursor-pointer group text-xs',
+                            selected.has(lead.id) ? 'bg-accent/60' : '',
+                            isActive ? 'opacity-50 pointer-events-none' : ''
+                          )}
+                          tabIndex={0}
+                          onClick={() => openUserModal(lead)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') openUserModal(lead);
+                          }}
+                        >
+                          <td className="px-2 py-2">
+                            <Checkbox
+                              checked={selected.has(lead.id)}
+                              onCheckedChange={() => handleSelect(lead.id)}
+                              disabled={isCheckboxDisabled(lead.id) || callLoading || isActive}
+                              aria-label={`Select lead ${lead.firstNameLowerCase} ${lead.lastNameLowerCase}`}
+                              className="border-primary data-[state=checked]:bg-primary"
+                              onClick={e => e.stopPropagation()}
+                            />
+                          </td>
+                          <td className={cn('px-2 py-2', columns[0].width)}>{lead.id}</td>
+                          <td className={cn('px-2 py-2', columns[1].width)}>{formatDate(lead.dateAdded)}</td>
+                          <td className={cn('px-2 py-2', columns[2].width)}>
+                            <span className="capitalize">{lead.firstNameLowerCase} {lead.lastNameLowerCase}</span>
+                          </td>
+                          <td className={cn('px-2 py-2', columns[3].width)}>{lead.phone}</td>
+                          <td className={cn('px-2 py-2', columns[4].width)}>
+                            {(() => {
+                              const value = callStatus[lead.id];
+                              return value
+                                ? <span className={cn(
+                                    isTerminalStatus(value)
+                                      ? 'text-destructive'
+                                      : value === 'Ringing'
+                                      ? 'text-yellow-600 dark:text-yellow-400'
+                                      : value === 'Up'
+                                      ? 'text-green-600 dark:text-green-400'
+                                      : 'text-muted-foreground'
+                                  )}>{value}</span>
+                                : <span className="text-muted-foreground">-</span>;
+                            })()}
+                          </td>
+                        </tr>
+                      )})}
               </tbody>
             </table>
           </div>
-          <div className="flex items-center justify-between px-6 py-4 bg-[#1e293b] border-t border-blue-900">
-            <div className="text-sm text-blue-300">
+          <div className="flex items-center justify-between px-6 py-4 bg-muted border-t border-border">
+            <div className="text-sm text-muted-foreground">
               Page <b>{page}</b> of <b>{totalPages}</b>
             </div>
             <div className="flex gap-2">
               <Button
                 variant="ghost"
-                className="text-blue-400"
+                className="text-primary"
                 disabled={page === 1}
                 onClick={() => setPage(p => Math.max(1, p - 1))}
               >
@@ -412,7 +408,7 @@ function isTerminalStatus(status: string) {
               </Button>
               <Button
                 variant="ghost"
-                className="text-blue-400"
+                className="text-primary"
                 disabled={page === totalPages}
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               >
@@ -422,53 +418,53 @@ function isTerminalStatus(status: string) {
           </div>
         </div>
         {error && (
-          <div className="mt-4 text-red-400 bg-red-900/30 px-4 py-2 rounded-lg border border-red-700">
+          <div className="mt-4 text-destructive bg-destructive/10 px-4 py-2 rounded-lg border border-destructive">
             {error}
           </div>
         )}
       </main>
       <Dialog open={userModal.open} onOpenChange={closeUserModal}>
-        <DialogContent className="max-w-lg bg-[#0f172a] border border-blue-900 rounded-2xl shadow-2xl">
+        <DialogContent className="max-w-lg bg-card border border-border rounded-2xl shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-blue-200">User Details</DialogTitle>
-            <DialogDescription className="text-blue-300">
+            <DialogTitle className="text-2xl font-bold text-primary">
+              User Details
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Detailed information about the selected user.
             </DialogDescription>
           </DialogHeader>
           {userModal.lead ? (
             <div className="flex flex-col gap-4 mt-4">
               <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                <div className="text-blue-400 font-mono">ID</div>
-                <div className="text-white">{userModal.lead.id}</div>
-                <div className="text-blue-400 font-mono">Date</div>
-                <div className="text-white">{formatDate(userModal.lead.dateAdded)}</div>
-                <div className="text-blue-400 font-mono">Name</div>
-                <div className="text-white capitalize">
-                  {userModal.lead.firstNameLowerCase} {userModal.lead.lastNameLowerCase}
-                </div>
-                <div className="text-blue-400 font-mono">Phone</div>
-                <div className="text-white">{userModal.lead.phone}</div>
-                <div className="text-blue-400 font-mono">Email</div>
-                <div className="text-white">{userModal.lead.email}</div>
-                <div className="text-blue-400 font-mono">Address</div>
-                <div className="text-white">{userModal.lead.address || '-'}</div>
-                <div className="text-blue-400 font-mono">State</div>
-                <div className="text-white">{userModal.lead.state || '-'}</div>
-                <div className="text-blue-400 font-mono">Country</div>
-                <div className="text-white">{userModal.lead.country || '-'}</div>
-                <div className="text-blue-400 font-mono">Source</div>
-                <div className="text-white">{userModal.lead.source || '-'}</div>
-                <div className="text-blue-400 font-mono">Custom Fields</div>
-                <div className="text-white flex flex-col gap-1">
+                <div className="text-primary font-mono">ID</div>
+                <div className="text-foreground">{userModal.lead.id}</div>
+                <div className="text-primary font-mono">Date</div>
+                <div className="text-foreground">{formatDate(userModal.lead.dateAdded)}</div>
+                <div className="text-primary font-mono">Name</div>
+                <div className="text-foreground capitalize">{userModal.lead.firstNameLowerCase} {userModal.lead.lastNameLowerCase}</div>
+                <div className="text-primary font-mono">Phone</div>
+                <div className="text-foreground">{userModal.lead.phone}</div>
+                <div className="text-primary font-mono">Email</div>
+                <div className="text-foreground">{userModal.lead.email}</div>
+                <div className="text-primary font-mono">Address</div>
+                <div className="text-foreground">{userModal.lead.address || '-'}</div>
+                <div className="text-primary font-mono">State</div>
+                <div className="text-foreground">{userModal.lead.state || '-'}</div>
+                <div className="text-primary font-mono">Country</div>
+                <div className="text-foreground">{userModal.lead.country || '-'}</div>
+                <div className="text-primary font-mono">Source</div>
+                <div className="text-foreground">{userModal.lead.source || '-'}</div>
+                <div className="text-primary font-mono">Custom Fields</div>
+                <div className="text-foreground flex flex-col gap-1">
                   {parseCustomFields(userModal.lead.customFields).length === 0
                     ? <span>-</span>
                     : parseCustomFields(userModal.lead.customFields).map(field => (
-                        <span key={field.id} className="text-blue-200 text-xs">{field.value}</span>
+                        <span key={field.id} className="text-muted-foreground text-xs">{field.value}</span>
                       ))}
                 </div>
               </div>
               <Button
-                className="mt-4 bg-blue-700 hover:bg-blue-800 text-white rounded-lg"
+                className="mt-4 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg"
                 onClick={closeUserModal}
               >
                 Close
@@ -483,7 +479,7 @@ function isTerminalStatus(status: string) {
           )}
         </DialogContent>
       </Dialog>
-      <footer className="px-8 py-4 text-center text-blue-900 text-xs">
+      <footer className="px-8 py-4 text-center text-muted-foreground text-xs">
         &copy; {new Date().getFullYear()} Bol Bachhan. All rights reserved.
       </footer>
     </div>
