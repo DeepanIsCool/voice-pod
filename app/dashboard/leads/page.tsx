@@ -404,13 +404,16 @@ function isTerminalStatus(status: string) {
                               const value = callStatus[lead.id];
                               return value
                                 ? <span className={cn(
-                                    isTerminalStatus(value)
-                                      ? 'text-destructive'
-                                      : value === 'Ringing'
-                                      ? 'text-yellow-600 dark:text-yellow-400'
-                                      : value === 'Up'
-                                      ? 'text-green-600 dark:text-green-400'
-                                      : 'text-muted-foreground'
+                                    'dark:text-white',
+                                    'not-dark:' + (
+                                      isTerminalStatus(value)
+                                        ? 'text-destructive'
+                                        : value === 'Ringing'
+                                        ? 'text-yellow-600'
+                                        : value === 'Up'
+                                        ? 'text-green-600'
+                                        : 'text-muted-foreground'
+                                    )
                                   )}>{value}</span>
                                 : <span className="text-muted-foreground">-</span>;
                             })()}
