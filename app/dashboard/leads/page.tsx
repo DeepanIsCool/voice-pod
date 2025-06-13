@@ -446,9 +446,14 @@ export default function LeadsDashboardPage() {
             <div className="flex flex-col items-center gap-4 w-full mt-2">
               {/* Number Display */}
               <div className="w-full flex justify-center">
-                <div className="w-[260px] bg-muted rounded-lg px-3 py-2 text-center font-mono text-xl tracking-widest text-foreground border border-border select-all transition-colors">
-                  {dialNumber || <span className="text-muted-foreground">Enter number</span>}
-                </div>
+                <Input
+                  value={dialNumber}
+                  onChange={e => setDialNumber(e.target.value.replace(/[^\d+]/g, ''))}
+                  placeholder="Enter number"
+                  className="w-[260px] bg-muted rounded-lg px-3 py-2 text-center font-mono text-xl tracking-widest text-foreground border border-border select-all transition-colors"
+                  disabled={customCallLoading || customPolling}
+                  maxLength={15}
+                />
               </div>
               {/* Dialpad */}
               <div className="grid grid-cols-3 gap-x-6 gap-y-4 mt-2 w-[220px]">
