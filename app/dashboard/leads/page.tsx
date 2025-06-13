@@ -258,10 +258,11 @@ function isTerminalStatus(status: string) {
   }, [activeCallMap]);
 
   const columns = [
-    { key: 'id', label: 'Id', width: 'w-24' },
-    { key: 'dateAdded', label: 'Date', width: 'w-40' },
+    { key: 'date', label: 'Date', width: 'w-32' },
+    { key: 'time', label: 'Time', width: 'w-32' },
     { key: 'name', label: 'Name', width: 'w-48' },
     { key: 'phone', label: 'Phone', width: 'w-40' },
+    { key: 'customField', label: 'Custom Field', width: 'w-48' },
     { key: 'callStatus', label: 'Call Status', width: 'w-32' },
   ];
 
@@ -366,13 +367,39 @@ function isTerminalStatus(status: string) {
                               onClick={e => e.stopPropagation()}
                             />
                           </td>
-                          <td className={cn('px-2 py-2', columns[0].width)}>{lead.id}</td>
-                          <td className={cn('px-2 py-2', columns[1].width)}>{formatDate(lead.dateAdded)}</td>
+                          <td className={cn('px-2 py-2', columns[0].width)}>
+                            {(() => {
+                              try {
+                                const d = new Date(lead.dateAdded);
+                                return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                              } catch {
+                                return '-';
+                              }
+                            })()}
+                          </td>
+                          <td className={cn('px-2 py-2', columns[1].width)}>
+                            {(() => {
+                              try {
+                                const d = new Date(lead.dateAdded);
+                                return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+                              } catch {
+                                return '-';
+                              }
+                            })()}
+                          </td>
                           <td className={cn('px-2 py-2', columns[2].width)}>
                             <span className="capitalize">{lead.firstNameLowerCase} {lead.lastNameLowerCase}</span>
                           </td>
                           <td className={cn('px-2 py-2', columns[3].width)}>{lead.phone}</td>
                           <td className={cn('px-2 py-2', columns[4].width)}>
+                            {(() => {
+                              const fields = parseCustomFields(lead.customFields);
+                              if (!fields.length) return <span className="text-muted-foreground">-</span>;
+                              const words = fields[0].value.split(' ').slice(0, 3).join(' ');
+                              return <span>{words}{fields[0].value.split(' ').length > 3 ? '...' : ''}</span>;
+                            })()}
+                          </td>
+                          <td className={cn('px-2 py-2', columns[5].width)}>
                             {(() => {
                               const value = callStatus[lead.id];
                               return value
