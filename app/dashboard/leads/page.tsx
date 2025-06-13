@@ -1,22 +1,15 @@
-"use client";
+'use client';
 
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
-import { format } from "date-fns";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 
-const API_URL = "https://ai.rajatkhandelwal.com";
-const AUTH_TOKEN =
-  "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im1yaW5tb3loYWxkZXI4NTlAZ21haWwuY29tIiwiaWF0IjoxNzQ5NzM2NjM0fQ.pN9zbmyCn9nKOKkjplIHzIlW0kdSrrKFavJwW_WM8KQ";
+const API_URL = 'https://ai.rajatkhandelwal.com';
+const AUTH_TOKEN = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im1yaW5tb3loYWxkZXI4NTlAZ21haWwuY29tIiwiaWF0IjoxNzQ5NzM2NjM0fQ.pN9zbmyCn9nKOKkjplIHzIlW0kdSrrKFavJwW_WM8KQ';
 
 type Lead = {
   id: string;
@@ -52,14 +45,14 @@ function parseCustomFields(json: string): { id: string; value: string }[] {
 }
 
 function formatPhone(phone: string) {
-  if (phone.startsWith("+91")) return phone.slice(3);
-  if (phone.startsWith("+")) return phone.slice(1);
+  if (phone.startsWith('+91')) return phone.slice(3);
+  if (phone.startsWith('+')) return phone.slice(1);
   return phone;
 }
 
 function formatDate(date: string) {
   try {
-    return format(new Date(date), "dd MMM yyyy, hh:mm a");
+    return format(new Date(date), 'dd MMM yyyy, hh:mm a');
   } catch {
     return date;
   }
@@ -67,30 +60,22 @@ function formatDate(date: string) {
 
 function isTerminalStatus(status: string) {
   const val = status?.toLowerCase();
-  return (
-    val === "hangup" ||
-    val === "down"
-  );
+  return val === 'hangup' || val === 'down' || val === 'failed' || val === 'completed' || val === 'answered' || val === 'busy';
 }
 
 export default function LeadsDashboardPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalLeads, setTotalLeads] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [callStatus, setCallStatus] = useState<Record<string, string>>({});
   const [callLoading, setCallLoading] = useState(false);
-  const [activeCallMap, setActiveCallMap] = useState<Record<string, string>>(
-    {}
-  ); // phone -> leadId
+  const [activeCallMap, setActiveCallMap] = useState<Record<string, string>>({}); // phone -> leadId
   const [polling, setPolling] = useState(false);
   const pollingRef = React.useRef<NodeJS.Timeout | null>(null);
-  const [userModal, setUserModal] = useState<{
-    open: boolean;
-    lead: Lead | null;
-  }>({ open: false, lead: null });
+  const [userModal, setUserModal] = useState<{ open: boolean; lead: Lead | null }>({ open: false, lead: null });
   const [error, setError] = useState<string | null>(null);
 
   // Fetch leads with pagination
@@ -100,16 +85,16 @@ export default function LeadsDashboardPage() {
     try {
       const res = await fetch(`${API_URL}/leads`, {
         headers: {
-          Authorization: AUTH_TOKEN,
-          Accept: "*/*",
+          'Authorization': AUTH_TOKEN,
+          'Accept': '*/*',
         },
       });
-      if (!res.ok) throw new Error("Failed to fetch leads");
+      if (!res.ok) throw new Error('Failed to fetch leads');
       const data: Lead[] = await res.json();
       setTotalLeads(data.length);
       setLeads(data.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE));
     } catch (e: any) {
-      setError(e.message || "Unknown error");
+      setError(e.message || 'Unknown error');
     } finally {
       setLoading(false);
     }
@@ -119,13 +104,10 @@ export default function LeadsDashboardPage() {
     fetchLeads(page);
   }, [fetchLeads, page]);
 
-  const totalPages = useMemo(
-    () => Math.ceil(totalLeads / PAGE_SIZE),
-    [totalLeads]
-  );
+  const totalPages = useMemo(() => Math.ceil(totalLeads / PAGE_SIZE), [totalLeads]);
 
   const handleSelect = (id: string) => {
-    setSelected((prev) => {
+    setSelected(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else if (next.size < MAX_SELECT) next.add(id);
@@ -137,134 +119,170 @@ export default function LeadsDashboardPage() {
     return !selected.has(id) && selected.size >= MAX_SELECT;
   };
 
-  const handleCall = async () => {
-    if (selected.size === 0) return;
-    setCallLoading(true);
-    setError(null);
+const handleCall = async () => {
+  if (selected.size === 0) return;
+  setCallLoading(true);
+  setError(null);
 
-    try {
-      const selectedLeads = leads.filter((lead) => selected.has(lead.id));
-      const numbers = selectedLeads
-        .map((l) => l.phone)
-        .filter(Boolean)
-        .map((phone) => formatPhone(phone as string));
+  try {
+    const selectedLeads = leads.filter(lead => selected.has(lead.id));
+    const numbers = selectedLeads
+      .map(l => l.phone)
+      .filter(Boolean)
+      .map(phone => formatPhone(phone as string));
 
-      const res = await fetch(`${API_URL}/makecall`, {
-        method: "POST",
-        headers: {
-          Authorization: AUTH_TOKEN,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ numbers: numbers.map(Number) }),
-      });
+    console.log('Calling numbers:', numbers);
 
-      if (!res.ok) throw new Error("Failed to initiate call");
-      const data = await res.json();
+    const res = await fetch(`${API_URL}/makecall`, {
+      method: 'POST',
+      headers: {
+        'Authorization': AUTH_TOKEN,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ numbers: numbers.map(Number) }),
+    });
 
-      const callIdToLeadId: Record<string, string> = {};
-      data.results.forEach((result: CallResult) => {
-        const callId = result.data.id; // session/call id from backend
-        const phone = String(result.number);
-        const lead = selectedLeads.find((l) => formatPhone(l.phone) === phone);
-        if (lead && callId) {
-          callIdToLeadId[callId] = lead.id;
-          setCallStatus((prev) => ({ ...prev, [lead.id]: "initiating" }));
-        }
-      });
-      setActiveCallMap(callIdToLeadId);
+    if (!res.ok) throw new Error('Failed to initiate call');
+    const data = await res.json();
+
+    console.log('makecall response:', data);
+
+    // Map callId (data.id) to leadId
+    const callIdToLeadId: Record<string, string> = {};
+
+    data.results.forEach((result: CallResult) => {
+      const callId = result.data?.id;
+      const phone = String(result.number);
+      const lead = selectedLeads.find(l => formatPhone(l.phone) === phone);
+      if (lead && callId) {
+        callIdToLeadId[callId] = lead.id;
+        setCallStatus(prev => {
+          console.log(`Setting callStatus for lead ${lead.id} to 'initiating'`);
+          return { ...prev, [lead.id]: 'initiating' };
+        });
+      }
+    });
+
+    console.log('callIdToLeadId mapping:', callIdToLeadId);
+
+    setActiveCallMap(callIdToLeadId);
+
+    // Start polling after 5 seconds
+    setTimeout(() => {
       setPolling(true);
-    } catch (e: any) {
-      setError(e.message || "Unknown error");
-      setCallLoading(false);
-      setSelected(new Set());
-    }
-  };
+    }, 1000);
 
-  useEffect(() => {
-    if (!polling || Object.keys(activeCallMap).length === 0) return;
+  } catch (e: any) {
+    setError(e.message || 'Unknown error');
+    setCallLoading(false);
+    setSelected(new Set());
+  }
+};
 
-    let stopped = false;
-    let firstPoll = true;
+  // Poll for call status every second
+useEffect(() => {
+  if (!polling || Object.keys(activeCallMap).length === 0) return;
+  let stopped = false;
 
-    async function poll() {
-      if (stopped) return;
-      try {
-        const callIds = Object.keys(activeCallMap);
-        if (callIds.length === 0) return;
+  async function poll() {
+    if (stopped) return;
+    try {
+      const callIds = Object.keys(activeCallMap);
+      if (callIds.length === 0) return;
 
-        const statusRes = await fetch(`${API_URL}/callstatus`, {
-          method: "POST",
-          headers: {
-            Authorization: AUTH_TOKEN,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ callIds }),
+      console.log('Polling call status for callIds:', callIds);
+
+      const statusRes = await fetch(`${API_URL}/callstatus`, {
+        method: 'POST',
+        headers: {
+          'Authorization': AUTH_TOKEN,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ callIds }), // send array of call IDs
+      });
+
+      if (statusRes.ok) {
+        const statusData = await statusRes.json();
+        console.log('callstatus response:', statusData);
+
+        const statusMap: Record<string, string> = {};
+        let allDone = true;
+
+        statusData.results.forEach((result: any) => {
+          const leadId = activeCallMap[result.callId];
+          if (leadId) {
+            const value = result.status ?? result.state ?? '-';
+            console.log(`Lead ${leadId} callId ${result.callId} status:`, value);
+            statusMap[leadId] = value;
+            if (!isTerminalStatus(value)) {
+              allDone = false;
+            }
+          }
         });
 
-        if (statusRes.ok) {
-          const statusData = await statusRes.json();
-          console.log("Call status data:", statusData);
-          const statusMap: Record<string, string> = {};
-          let allDone = true;
+        setCallStatus(prev => {
+          console.log('Updating callStatus:', { ...prev, ...statusMap });
+          return { ...prev, ...statusMap };
+        });
 
-          statusData.results.forEach((result: any) => {
-            const leadId = activeCallMap[result.callId]; // result.callId is now the session/call id
-            if (leadId) {
-              const value = result.status ?? result.state ?? "-";
-              statusMap[leadId] = value;
-              if (!isTerminalStatus(value)) {
-                allDone = false;
-              }
-            }
-          });
-
-          setCallStatus((prev) => ({ ...prev, ...statusMap }));
-
-          if (allDone) {
-            setPolling(false);
-            setCallLoading(false);
-            setSelected(new Set());
-            setActiveCallMap({});
-            return;
-          }
+        if (allDone) {
+          setPolling(false);
+          setCallLoading(false);
+          setSelected(new Set());
+          setActiveCallMap({});
+          return;
         }
-      } catch (e) {
-        setError("Failed to poll call status.");
-        setPolling(false);
-        setCallLoading(false);
-        setActiveCallMap({});
       }
-
-      // Delay first poll more, then use 1s interval
-      pollingRef.current = setTimeout(poll, firstPoll ? 1500 : 1000);
-      firstPoll = false;
+    } catch (e) {
+      setError('Failed to poll call status.');
+      setPolling(false);
+      setCallLoading(false);
+      setActiveCallMap({});
     }
 
-    pollingRef.current = setTimeout(poll, 1000); // Start polling after 1 seconds
+    // Schedule next poll
+    pollingRef.current = setTimeout(poll, 1000);
+  }
 
-    return () => {
-      stopped = true;
-      if (pollingRef.current) clearTimeout(pollingRef.current);
-    };
-  }, [polling, activeCallMap]);
+  poll();
+
+  return () => {
+    stopped = true;
+    if (pollingRef.current) clearTimeout(pollingRef.current);
+  };
+}, [polling, activeCallMap]);
+
+function isTerminalStatus(status: string) {
+  const val = status?.toLowerCase();
+  console.log('Checking terminal status for:', status, '->', val);
+  return val === 'hangup' || val === 'down' || val === 'failed' || val === 'completed' || val === 'answered' || val === 'busy';
+}
+
+  // Get active lead IDs
+  const activeLeadIds = useMemo(() => {
+    return new Set(Object.values(activeCallMap));
+  }, [activeCallMap]);
 
   const columns = [
-    { key: "id", label: "Id", width: "w-24" },
-    { key: "dateAdded", label: "Date", width: "w-40" },
-    { key: "name", label: "Name", width: "w-48" },
-    { key: "phone", label: "Phone", width: "w-40" },
-    { key: "callStatus", label: "Call Status", width: "w-32" },
+    { key: 'id', label: 'Id', width: 'w-24' },
+    { key: 'dateAdded', label: 'Date', width: 'w-40' },
+    { key: 'name', label: 'Name', width: 'w-48' },
+    { key: 'phone', label: 'Phone', width: 'w-40' },
+    { key: 'callStatus', label: 'Call Status', width: 'w-32' },
   ];
 
-  const openUserModal = (lead: Lead) => setUserModal({ open: true, lead });
+  const openUserModal = (lead: Lead) => {
+    // Prevent opening modal for active calls
+    if (activeLeadIds.has(lead.id)) return;
+    setUserModal({ open: true, lead });
+  };
+  
   const closeUserModal = () => setUserModal({ open: false, lead: null });
 
   const filteredLeads = useMemo(() => {
     if (!search.trim()) return leads;
-    return leads.filter(
-      (lead) =>
-        lead.phone &&
-        lead.phone.replace(/\D/g, "").includes(search.replace(/\D/g, ""))
+    return leads.filter(lead =>
+      lead.phone && lead.phone.replace(/\D/g, '').includes(search.replace(/\D/g, ''))
     );
   }, [leads, search]);
 
@@ -279,30 +297,26 @@ export default function LeadsDashboardPage() {
             <span className="text-sm text-blue-200">
               Showing <b>{filteredLeads.length}</b> of <b>{totalLeads}</b> leads
               {selected.size > 0 && (
-                <span className="ml-2 text-xs text-blue-400">
-                  | <b>{selected.size}</b> selected
-                </span>
+                <span className="ml-2 text-xs text-blue-400">| <b>{selected.size}</b> selected</span>
               )}
             </span>
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={e => setSearch(e.target.value)}
               placeholder="Search by phone number"
               className="mt-1 sm:mt-0 px-2 py-1 rounded bg-[#1e293b] border border-blue-900 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-56"
             />
           </div>
           <Button
             className={cn(
-              "bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-lg shadow transition",
-              callLoading || selected.size === 0
-                ? "opacity-60 cursor-not-allowed"
-                : ""
+              'bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-lg shadow transition',
+              callLoading || selected.size === 0 ? 'opacity-60 cursor-not-allowed' : ''
             )}
             disabled={callLoading || selected.size === 0}
             onClick={handleCall}
           >
-            {callLoading ? "Calling..." : "CALL"}
+            {callLoading ? 'Calling...' : 'CALL'}
           </Button>
         </div>
         <div className="rounded-xl overflow-hidden shadow-lg bg-[#111827] border border-blue-900">
@@ -311,14 +325,8 @@ export default function LeadsDashboardPage() {
               <thead>
                 <tr className="bg-[#1e293b] text-blue-200 text-xs">
                   <th className="px-2 py-2 w-12"></th>
-                  {columns.map((col) => (
-                    <th
-                      key={col.key}
-                      className={cn(
-                        "px-2 py-2 font-semibold text-xs",
-                        col.width
-                      )}
-                    >
+                  {columns.map(col => (
+                    <th key={col.key} className={cn('px-2 py-2 font-semibold text-xs', col.width)}>
                       {col.label}
                     </th>
                   ))}
@@ -328,85 +336,64 @@ export default function LeadsDashboardPage() {
                 {loading
                   ? Array.from({ length: 10 }).map((_, i) => (
                       <tr key={i} className="border-b border-blue-900">
-                        <td className="px-4 py-3">
-                          <Skeleton className="h-5 w-5 rounded" />
-                        </td>
-                        {columns.map((col) => (
-                          <td
-                            key={col.key}
-                            className={cn("px-4 py-3", col.width)}
-                          >
+                        <td className="px-4 py-3"><Skeleton className="h-5 w-5 rounded" /></td>
+                        {columns.map(col => (
+                          <td key={col.key} className={cn('px-4 py-3', col.width)}>
                             <Skeleton className="h-5 w-full rounded" />
                           </td>
                         ))}
                       </tr>
                     ))
-                  : filteredLeads.map((lead) => (
+                  : filteredLeads.map(lead => {
+                      const isActive = activeLeadIds.has(lead.id);
+                      return (
                       <tr
                         key={lead.id}
                         className={cn(
-                          "border-b border-blue-900 hover:bg-blue-950 transition cursor-pointer group text-xs",
-                          selected.has(lead.id) ? "bg-blue-900/60" : ""
+                          'border-b border-blue-900 hover:bg-blue-950 transition cursor-pointer group text-xs',
+                          selected.has(lead.id) ? 'bg-blue-900/60' : '',
+                          isActive ? 'opacity-50 pointer-events-none' : ''
                         )}
                         tabIndex={0}
-                        onClick={(e) => {
-                          if ((e.target as HTMLElement).tagName !== "INPUT")
-                            openUserModal(lead);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") openUserModal(lead);
+                        onClick={() => openUserModal(lead)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') openUserModal(lead);
                         }}
                       >
                         <td className="px-2 py-2">
                           <Checkbox
                             checked={selected.has(lead.id)}
                             onCheckedChange={() => handleSelect(lead.id)}
-                            disabled={
-                              isCheckboxDisabled(lead.id) || callLoading
-                            }
+                            disabled={isCheckboxDisabled(lead.id) || callLoading || isActive}
                             aria-label={`Select lead ${lead.firstNameLowerCase} ${lead.lastNameLowerCase}`}
                             className="border-blue-400 data-[state=checked]:bg-blue-600"
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={e => e.stopPropagation()}
                           />
                         </td>
-                        <td className={cn("px-2 py-2", columns[0].width)}>
-                          {lead.id}
+                        <td className={cn('px-2 py-2', columns[0].width)}>{lead.id}</td>
+                        <td className={cn('px-2 py-2', columns[1].width)}>{formatDate(lead.dateAdded)}</td>
+                        <td className={cn('px-2 py-2', columns[2].width)}>
+                          <span className="capitalize">{lead.firstNameLowerCase} {lead.lastNameLowerCase}</span>
                         </td>
-                        <td className={cn("px-2 py-2", columns[1].width)}>
-                          {formatDate(lead.dateAdded)}
-                        </td>
-                        <td className={cn("px-2 py-2", columns[2].width)}>
-                          <span className="capitalize">
-                            {lead.firstNameLowerCase} {lead.lastNameLowerCase}
-                          </span>
-                        </td>
-                        <td className={cn("px-2 py-2", columns[3].width)}>
-                          {lead.phone}
-                        </td>
-                        <td className={cn("px-2 py-2", columns[4].width)}>
+                        <td className={cn('px-2 py-2', columns[3].width)}>{lead.phone}</td>
+                        <td className={cn('px-2 py-2', columns[4].width)}>
                           {(() => {
                             const value = callStatus[lead.id];
-                            return value ? (
-                              <span
-                                className={cn(
+                            return value
+                              ? <span className={cn(
                                   isTerminalStatus(value)
-                                    ? "text-red-400"
-                                    : value === "Ringing"
-                                    ? "text-yellow-400"
-                                    : value === "Up"
-                                    ? "text-green-400"
-                                    : "text-blue-200"
-                                )}
-                              >
-                                {value}
-                              </span>
-                            ) : (
-                              <span className="text-blue-200">-</span>
-                            );
+                                    ? 'text-red-400'
+                                    : value === 'Ringing'
+                                    ? 'text-yellow-400'
+                                    : value === 'Up'
+                                    ? 'text-green-400'
+                                    : 'text-blue-200'
+                                )}>{value}</span>
+                              : <span className="text-blue-200">-</span>;
                           })()}
                         </td>
                       </tr>
-                    ))}
+                    )})}
               </tbody>
             </table>
           </div>
@@ -419,7 +406,7 @@ export default function LeadsDashboardPage() {
                 variant="ghost"
                 className="text-blue-400"
                 disabled={page === 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                onClick={() => setPage(p => Math.max(1, p - 1))}
               >
                 Previous
               </Button>
@@ -427,7 +414,7 @@ export default function LeadsDashboardPage() {
                 variant="ghost"
                 className="text-blue-400"
                 disabled={page === totalPages}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               >
                 Next
               </Button>
@@ -443,9 +430,7 @@ export default function LeadsDashboardPage() {
       <Dialog open={userModal.open} onOpenChange={closeUserModal}>
         <DialogContent className="max-w-lg bg-[#0f172a] border border-blue-900 rounded-2xl shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-blue-200">
-              User Details
-            </DialogTitle>
+            <DialogTitle className="text-2xl font-bold text-blue-200">User Details</DialogTitle>
             <DialogDescription className="text-blue-300">
               Detailed information about the selected user.
             </DialogDescription>
@@ -456,44 +441,30 @@ export default function LeadsDashboardPage() {
                 <div className="text-blue-400 font-mono">ID</div>
                 <div className="text-white">{userModal.lead.id}</div>
                 <div className="text-blue-400 font-mono">Date</div>
-                <div className="text-white">
-                  {formatDate(userModal.lead.dateAdded)}
-                </div>
+                <div className="text-white">{formatDate(userModal.lead.dateAdded)}</div>
                 <div className="text-blue-400 font-mono">Name</div>
                 <div className="text-white capitalize">
-                  {userModal.lead.firstNameLowerCase}{" "}
-                  {userModal.lead.lastNameLowerCase}
+                  {userModal.lead.firstNameLowerCase} {userModal.lead.lastNameLowerCase}
                 </div>
                 <div className="text-blue-400 font-mono">Phone</div>
                 <div className="text-white">{userModal.lead.phone}</div>
                 <div className="text-blue-400 font-mono">Email</div>
                 <div className="text-white">{userModal.lead.email}</div>
                 <div className="text-blue-400 font-mono">Address</div>
-                <div className="text-white">
-                  {userModal.lead.address || "-"}
-                </div>
+                <div className="text-white">{userModal.lead.address || '-'}</div>
                 <div className="text-blue-400 font-mono">State</div>
-                <div className="text-white">{userModal.lead.state || "-"}</div>
+                <div className="text-white">{userModal.lead.state || '-'}</div>
                 <div className="text-blue-400 font-mono">Country</div>
-                <div className="text-white">
-                  {userModal.lead.country || "-"}
-                </div>
+                <div className="text-white">{userModal.lead.country || '-'}</div>
                 <div className="text-blue-400 font-mono">Source</div>
-                <div className="text-white">{userModal.lead.source || "-"}</div>
+                <div className="text-white">{userModal.lead.source || '-'}</div>
                 <div className="text-blue-400 font-mono">Custom Fields</div>
                 <div className="text-white flex flex-col gap-1">
-                  {parseCustomFields(userModal.lead.customFields).length ===
-                  0 ? (
-                    <span>-</span>
-                  ) : (
-                    parseCustomFields(userModal.lead.customFields).map(
-                      (field) => (
-                        <span key={field.id} className="text-blue-200 text-xs">
-                          {field.value}
-                        </span>
-                      )
-                    )
-                  )}
+                  {parseCustomFields(userModal.lead.customFields).length === 0
+                    ? <span>-</span>
+                    : parseCustomFields(userModal.lead.customFields).map(field => (
+                        <span key={field.id} className="text-blue-200 text-xs">{field.value}</span>
+                      ))}
                 </div>
               </div>
               <Button
