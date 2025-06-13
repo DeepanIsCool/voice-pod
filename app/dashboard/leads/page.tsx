@@ -479,9 +479,6 @@ function isTerminalStatus(status: string) {
           )}
         </DialogContent>
       </Dialog>
-      <footer className="px-8 py-4 text-center text-muted-foreground text-xs">
-        &copy; {new Date().getFullYear()} Bol Bachhan. All rights reserved.
-      </footer>
     </div>
   );
 }

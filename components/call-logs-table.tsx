@@ -425,7 +425,7 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
     },
     {
       accessorKey: "latency",
-      header: "End to End Latency",
+      header: "Average Latency",
       cell: ({ row }) => {
         const latency = row.original.latency;
         return latency !== undefined && latency !== null
@@ -469,132 +469,134 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
 
   return (
     <div className="flex flex-col max-w-12xl h-full w-full space-y-4">
-      <div className="flex items-center justify-between p-4">
-        <Input
-          placeholder="Search by number"
-          value={globalFilter ?? ""}
-          onChange={(event) => setGlobalFilter(event.target.value)}
-          className="max-w-sm"
-        />
-        <Button
-          variant="destructive"
-          size="sm"
-          className="ml-4 bg-destructive/80 text-destructive-foreground border border-destructive shadow hover:bg-destructive dark:bg-destructive/70 dark:hover:bg-destructive transition"
-          disabled={selectedRows.size === 0 || deleting}
-          onClick={async () => {
-            if (selectedRows.size === 0) return;
-            setDeleting(true);
-            try {
-              const res = await fetch('https://ai.rajatkhandelwal.com/deletecalllog', {
-                method: 'POST',
-                headers: {
-                  ...getAuthHeaders(),
-                  'Accept': '*/*',
-                },
-                body: JSON.stringify({ lastdata: Array.from(selectedRows) }),
-              });
-              if (res.ok) {
-                setLogs(prev => prev.filter(l => !l.lastdata || !selectedRows.has(l.lastdata)));
-                setSelectedRows(new Set());
-              } else {
+      <div className="rounded-xl overflow-hidden shadow-lg bg-card border border-border">
+        <div className="flex items-center justify-between p-4">
+          <Input
+            placeholder="Search by number"
+            value={globalFilter ?? ""}
+            onChange={(event) => setGlobalFilter(event.target.value)}
+            className="max-w-sm"
+          />
+          <Button
+            variant="destructive"
+            size="sm"
+            className="ml-4 bg-destructive/80 text-destructive-foreground border border-destructive shadow hover:bg-destructive dark:bg-destructive/70 dark:hover:bg-destructive transition"
+            disabled={selectedRows.size === 0 || deleting}
+            onClick={async () => {
+              if (selectedRows.size === 0) return;
+              setDeleting(true);
+              try {
+                const res = await fetch('https://ai.rajatkhandelwal.com/deletecalllog', {
+                  method: 'POST',
+                  headers: {
+                    ...getAuthHeaders(),
+                    'Accept': '*/*',
+                  },
+                  body: JSON.stringify({ lastdata: Array.from(selectedRows) }),
+                });
+                if (res.ok) {
+                  setLogs(prev => prev.filter(l => !l.lastdata || !selectedRows.has(l.lastdata)));
+                  setSelectedRows(new Set());
+                } else {
+                  alert('Failed to delete selected call logs.');
+                }
+              } catch {
                 alert('Failed to delete selected call logs.');
+              } finally {
+                setDeleting(false);
               }
-            } catch {
-              alert('Failed to delete selected call logs.');
-            } finally {
-              setDeleting(false);
-            }
-          }}
-        >
-          <Trash2 className="w-4 h-4" /> Delete Selected
-        </Button>
-      </div>
-      <div className="w-full overflow-x-auto">
-        <Table className="w-full" style={{ tableLayout: "auto" }}>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header, i) => (
-                  <TableHead
-                    key={header.id}
-                    className={
-                      i === 0
-                        ? "px-2 py-2 text-left text-base font-semibold w-8"
-                        : "px-4 py-2 whitespace-nowrap text-left text-base font-semibold"
-                    }
-                  >
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                  onClick={() => setSelectedLog(row.original)}
-                  className="cursor-pointer"
-                >
-                  {row.getVisibleCells().map((cell, i) => (
-                    <TableCell
-                      key={cell.id}
+            }}
+          >
+            <Trash2 className="w-4 h-4" /> Delete Selected
+          </Button>
+        </div>
+        <div className="w-full overflow-x-auto">
+          <Table className="w-full" style={{ tableLayout: "auto" }}>
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header, i) => (
+                    <TableHead
+                      key={header.id}
                       className={
                         i === 0
-                          ? "px-2 py-2 w-8"
-                          : "px-4 py-2 whitespace-nowrap text-base"
+                          ? "px-2 py-2 text-left text-base font-semibold w-8"
+                          : "px-4 py-2 whitespace-nowrap text-left text-base font-semibold"
                       }
                     >
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                    </TableHead>
                   ))}
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  No results.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && "selected"}
+                    onClick={() => setSelectedLog(row.original)}
+                    className="cursor-pointer"
+                  >
+                    {row.getVisibleCells().map((cell, i) => (
+                      <TableCell
+                        key={cell.id}
+                        className={
+                          i === 0
+                            ? "px-2 py-2 w-8"
+                            : "px-4 py-2 whitespace-nowrap text-base"
+                        }
+                      >
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center"
+                  >
+                    No results.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
 
-      {/* Pagination Controls with Current Page */}
-      <div className="flex items-center justify-end space-x-2 p-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
-          Previous
-        </Button>
-        <span className="text-sm font-mono opacity-80 select-none">
-          Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
-        </span>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
-          Next
-        </Button>
+        {/* Pagination Controls with Current Page */}
+        <div className="flex items-center justify-end space-x-2 p-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+          >
+            Previous
+          </Button>
+          <span className="text-sm font-mono opacity-80 select-none">
+            Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+          >
+            Next
+          </Button>
+        </div>
       </div>
 
       <Dialog
