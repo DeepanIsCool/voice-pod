@@ -1,21 +1,14 @@
-
 "use client";
 import { Trash2 } from "lucide-react";
 
-import { useState, useRef, useEffect } from "react";
-import {
-  type ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  type SortingState,
-  useReactTable,
-  getFilteredRowModel,
-  FilterFn
-} from "@tanstack/react-table";
-import { Play, Pause, Volume2, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import {
@@ -27,11 +20,18 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  type ColumnDef,
+  FilterFn,
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  type SortingState,
+  useReactTable
+} from "@tanstack/react-table";
+import { Copy, Pause, Play, Volume2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 // ---- TYPES ----
 interface Transcription {
@@ -271,8 +271,56 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied">("idle");
   const [logs, setLogs] = useState<CallLog[]>(data);
   const [deleting, setDeleting] = useState(false);
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const selectAllRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (selectAllRef.current) {
+      const input = selectAllRef.current.querySelector('input');
+      if (input) {
+        input.indeterminate = selectedRows.size > 0 && selectedRows.size < logs.filter(l => l.lastdata).length;
+      }
+    }
+  }, [selectedRows, logs]);
 
   const columns: ColumnDef<CallLog>[] = [
+    {
+      id: "select",
+      header: () => (
+        <Checkbox
+          ref={selectAllRef}
+          checked={logs.length > 0 && selectedRows.size === logs.filter(l => l.lastdata).length}
+          onCheckedChange={checked => {
+            if (checked) {
+              setSelectedRows(new Set(logs.filter(l => l.lastdata).map(l => l.lastdata!)));
+            } else {
+              setSelectedRows(new Set());
+            }
+          }}
+          aria-label="Select all logs"
+        />
+      ),
+      cell: ({ row }) => {
+        const lastdata = row.original.lastdata;
+        if (!lastdata) return null;
+        return (
+          <Checkbox
+            checked={selectedRows.has(lastdata)}
+            onCheckedChange={() => {
+              setSelectedRows(prev => {
+                const next = new Set(prev);
+                if (next.has(lastdata)) next.delete(lastdata);
+                else next.add(lastdata);
+                return next;
+              });
+            }}
+            aria-label={`Select log ${lastdata}`}
+            onClick={e => e.stopPropagation()}
+          />
+        );
+      },
+      size: 32,
+    },
     {
       accessorKey: "date",
       header: "Date",
@@ -416,16 +464,53 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
           onChange={(event) => setGlobalFilter(event.target.value)}
           className="max-w-sm"
         />
+        <Button
+          variant="destructive"
+          size="sm"
+          className="ml-4 bg-destructive/80 text-destructive-foreground border border-destructive shadow hover:bg-destructive dark:bg-destructive/70 dark:hover:bg-destructive transition"
+          disabled={selectedRows.size === 0 || deleting}
+          onClick={async () => {
+            if (selectedRows.size === 0) return;
+            setDeleting(true);
+            try {
+              const res = await fetch('https://ai.rajatkhandelwal.com/deletecalllog', {
+                method: 'POST',
+                headers: {
+                  'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im1yaW5tb3loYWxkZXI4NTlAZ21haWwuY29tIiwiaWF0IjoxNzQ5NzM2NjM0fQ.pN9zbmyCn9nKOKkjplIHzIlW0kdSrrKFavJwW_WM8KQ',
+                  'Content-Type': 'application/json',
+                  'Accept': '*/*',
+                },
+                body: JSON.stringify({ lastdata: Array.from(selectedRows) }),
+              });
+              if (res.ok) {
+                setLogs(prev => prev.filter(l => !l.lastdata || !selectedRows.has(l.lastdata)));
+                setSelectedRows(new Set());
+              } else {
+                alert('Failed to delete selected call logs.');
+              }
+            } catch {
+              alert('Failed to delete selected call logs.');
+            } finally {
+              setDeleting(false);
+            }
+          }}
+        >
+          <Trash2 className="w-4 h-4" /> Delete Selected
+        </Button>
       </div>
       <div className="w-full overflow-x-auto">
         <Table className="w-full" style={{ tableLayout: "auto" }}>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
+                {headerGroup.headers.map((header, i) => (
                   <TableHead
                     key={header.id}
-                    className="px-4 py-2 whitespace-nowrap text-left text-base font-semibold"
+                    className={
+                      i === 0
+                        ? "px-2 py-2 text-left text-base font-semibold w-8"
+                        : "px-4 py-2 whitespace-nowrap text-left text-base font-semibold"
+                    }
                   >
                     {header.isPlaceholder
                       ? null
@@ -447,10 +532,14 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
                   onClick={() => setSelectedLog(row.original)}
                   className="cursor-pointer"
                 >
-                  {row.getVisibleCells().map((cell) => (
+                  {row.getVisibleCells().map((cell, i) => (
                     <TableCell
                       key={cell.id}
-                      className="px-4 py-2 whitespace-nowrap text-base"
+                      className={
+                        i === 0
+                          ? "px-2 py-2 w-8"
+                          : "px-4 py-2 whitespace-nowrap text-base"
+                      }
                     >
                       {flexRender(
                         cell.column.columnDef.cell,
