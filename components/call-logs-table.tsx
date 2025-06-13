@@ -19,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { getAuthHeaders } from '@/lib/auth';
 import {
   type ColumnDef,
   FilterFn,
@@ -476,8 +477,7 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
               const res = await fetch('https://ai.rajatkhandelwal.com/deletecalllog', {
                 method: 'POST',
                 headers: {
-                  'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im1yaW5tb3loYWxkZXI4NTlAZ21haWwuY29tIiwiaWF0IjoxNzQ5NzM2NjM0fQ.pN9zbmyCn9nKOKkjplIHzIlW0kdSrrKFavJwW_WM8KQ',
-                  'Content-Type': 'application/json',
+                  ...getAuthHeaders(),
                   'Accept': '*/*',
                 },
                 body: JSON.stringify({ lastdata: Array.from(selectedRows) }),
@@ -605,8 +605,7 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
                       const res = await fetch('https://ai.rajatkhandelwal.com/deletecalllog', {
                         method: 'POST',
                         headers: {
-                          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im1yaW5tb3loYWxkZXI4NTlAZ21haWwuY29tIiwiaWF0IjoxNzQ5NzM2NjM0fQ.pN9zbmyCn9nKOKkjplIHzIlW0kdSrrKFavJwW_WM8KQ',
-                          'Content-Type': 'application/json',
+                          ...getAuthHeaders(),
                           'Accept': '*/*',
                         },
                         body: JSON.stringify({ lastdata: [selectedLog.lastdata] }),
