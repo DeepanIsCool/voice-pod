@@ -64,6 +64,7 @@ interface CallLog {
   sessionid?: string;
   from?: string;
   to?: string;
+  latency?: number;
   Summary?: Array<{ transcription: Transcription[] }>;
   summary?: Array<{ transcription: Transcription[] }>;
 }
@@ -420,6 +421,16 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
         // Remove '91' prefix if present and number is longer than 10 digits
         if (normalized.startsWith("91") && normalized.length > 10) normalized = normalized.slice(2);
         return <div>{normalized}</div>;
+      },
+    },
+    {
+      accessorKey: "latency",
+      header: "End to End Latency",
+      cell: ({ row }) => {
+        const latency = row.original.latency;
+        return latency !== undefined && latency !== null
+          ? <span>{latency} ms</span>
+          : <span className="text-muted-foreground">-</span>;
       },
     },
   ];

@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getAuthHeaders } from "@/lib/auth";
-import { Skeleton } from "@/components/ui/skeleton";
 import { CallLogsTable } from "@/components/call-logs-table";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
+import { getAuthHeaders } from "@/lib/auth";
+import { useEffect, useState } from "react";
 
 interface CallLog {
   id: string;
@@ -33,6 +33,7 @@ interface CallLog {
       content: string;
     }>;
   }>;
+  latency: number | undefined;
 }
 
 export default function Dashboard() {
@@ -125,6 +126,7 @@ export default function Dashboard() {
                     : [],
                 }))
               : [],
+            latency: item.latency ?? undefined,
           })
         );
         setCallLogs(mapped);
