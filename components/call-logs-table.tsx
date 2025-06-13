@@ -1,4 +1,6 @@
+
 "use client";
+import { Trash2 } from "lucide-react";
 
 import { useState, useRef, useEffect } from "react";
 import {
@@ -267,6 +269,8 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
   const [globalFilter, setGlobalFilter] = useState("");
   const [selectedLog, setSelectedLog] = useState<CallLog | null>(null);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied">("idle");
+  const [logs, setLogs] = useState<CallLog[]>(data);
+  const [deleting, setDeleting] = useState(false);
 
   const columns: ColumnDef<CallLog>[] = [
     {
@@ -348,29 +352,31 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
       accessorKey: "from",
       header: "From",
       cell: ({ row }) => {
-        const raw = row.original.from || row.original.src;
-        let formatted = typeof raw === "string" && raw.startsWith("0") ? raw.slice(1) : raw;
-        if (!formatted) formatted = "-";
-        return <div>{String(formatted)}</div>;
+        let raw = row.original.from || row.original.src;
+        if (!raw || raw === "919240011600") return <div>Agent</div>;
+        if (typeof raw === "string" && raw.startsWith("91") && raw.length > 10) raw = raw.slice(2);
+        return <div>{raw}</div>;
       },
     },
     {
       accessorKey: "to",
       header: "To",
       cell: ({ row }) => {
-        const raw = row.original.to || row.original.dst;
-        let formatted = raw;
-        if (typeof raw === "string" && raw.startsWith("00")) {
-          formatted = raw.slice(2);
-        }
-        if (!formatted) formatted = "-";
-        return <div>{String(formatted)}</div>;
+        let raw = row.original.to || row.original.dst;
+        if (!raw) return <div>Agent</div>;
+        // Normalize for leading zeros and check for agent number
+        let normalized = String(raw).replace(/^0+/, "");
+        if (normalized === "919240011600" || normalized === "919240011600".replace(/^91/, "")) return <div>Agent</div>;
+        if (normalized === "919240011600" || normalized === "00919240011600" || normalized === "9240011600") return <div>Agent</div>;
+        // Remove '91' prefix if present and number is longer than 10 digits
+        if (normalized.startsWith("91") && normalized.length > 10) normalized = normalized.slice(2);
+        return <div>{normalized}</div>;
       },
     },
   ];
 
   const table = useReactTable({
-    data,
+    data: logs,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -497,7 +503,42 @@ export function CallLogsTable({ data }: CallLogsTableProps) {
       >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Call Details</DialogTitle>
+            <div className="flex flex-row items-center gap-2">
+              <DialogTitle>Call Details</DialogTitle>
+              {selectedLog?.lastdata && (
+                <button
+                  title="Delete Call Log"
+                  className="ml-1 p-1 rounded hover:bg-red-100 dark:hover:bg-red-900"
+                  disabled={deleting}
+                  onClick={async () => {
+                    setDeleting(true);
+                    try {
+                      const res = await fetch('https://ai.rajatkhandelwal.com/deletecalllog', {
+                        method: 'POST',
+                        headers: {
+                          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im1yaW5tb3loYWxkZXI4NTlAZ21haWwuY29tIiwiaWF0IjoxNzQ5NzM2NjM0fQ.pN9zbmyCn9nKOKkjplIHzIlW0kdSrrKFavJwW_WM8KQ',
+                          'Content-Type': 'application/json',
+                          'Accept': '*/*',
+                        },
+                        body: JSON.stringify({ lastdata: [selectedLog.lastdata] }),
+                      });
+                      if (res.ok) {
+                        setLogs(prev => prev.filter(l => l.lastdata !== selectedLog.lastdata));
+                        setSelectedLog(null);
+                      } else {
+                        alert('Failed to delete call log.');
+                      }
+                    } catch {
+                      alert('Failed to delete call log.');
+                    } finally {
+                      setDeleting(false);
+                    }
+                  }}
+                >
+                  <Trash2 className="w-5 h-5 text-red-500" />
+                </button>
+              )}
+            </div>
           </DialogHeader>
           {selectedLog && (
             <div className="flex flex-col gap-6">
