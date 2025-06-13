@@ -3,10 +3,12 @@
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getAuthHeaders } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { Phone } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 const API_URL = 'https://ai.rajatkhandelwal.com';
@@ -78,6 +80,16 @@ export default function LeadsDashboardPage() {
   const [userModal, setUserModal] = useState<{ open: boolean; lead: Lead | null }>({ open: false, lead: null });
   const [error, setError] = useState<string | null>(null);
 
+  // --- Custom Call (Dialpad) State ---
+  const [dialpadOpen, setDialpadOpen] = useState(false);
+  const [dialNumber, setDialNumber] = useState('');
+  const [customCallId, setCustomCallId] = useState<string | null>(null);
+  const [customCallStatus, setCustomCallStatus] = useState<string>('');
+  const [customCallLoading, setCustomCallLoading] = useState(false);
+  const [customPolling, setCustomPolling] = useState(false);
+  const customPollingRef = React.useRef<NodeJS.Timeout | null>(null);
+  const [customError, setCustomError] = useState<string | null>(null);
+
   // Fetch leads with pagination
   const fetchLeads = useCallback(async (page: number) => {
     setLoading(true);
@@ -119,138 +131,216 @@ export default function LeadsDashboardPage() {
     return !selected.has(id) && selected.size >= MAX_SELECT;
   };
 
-const handleCall = async () => {
-  if (selected.size === 0) return;
-  setCallLoading(true);
-  setError(null);
+  const handleCall = async () => {
+    if (selected.size === 0) return;
+    setCallLoading(true);
+    setError(null);
 
-  try {
-    const selectedLeads = leads.filter(lead => selected.has(lead.id));
-    const numbers = selectedLeads
-      .map(l => l.phone)
-      .filter(Boolean)
-      .map(phone => formatPhone(phone as string));
-
-    console.log('Calling numbers:', numbers);
-
-    const res = await fetch(`${API_URL}/makecall`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ numbers: numbers.map(Number) }),
-    });
-
-    if (!res.ok) throw new Error('Failed to initiate call');
-    const data = await res.json();
-
-    console.log('makecall response:', data);
-
-    // Map callId (data.id) to leadId
-    const callIdToLeadId: Record<string, string> = {};
-
-    data.results.forEach((result: CallResult) => {
-      const callId = result.data?.id;
-      const phone = String(result.number);
-      const lead = selectedLeads.find(l => formatPhone(l.phone) === phone);
-      if (lead && callId) {
-        callIdToLeadId[callId] = lead.id;
-        setCallStatus(prev => {
-          console.log(`Setting callStatus for lead ${lead.id} to 'initiating'`);
-          return { ...prev, [lead.id]: 'initiating' };
-        });
-      }
-    });
-
-    console.log('callIdToLeadId mapping:', callIdToLeadId);
-
-    setActiveCallMap(callIdToLeadId);
-
-    // Start polling after 5 seconds
-    setTimeout(() => {
-      setPolling(true);
-    }, 1000);
-
-  } catch (e: any) {
-    setError(e.message || 'Unknown error');
-    setCallLoading(false);
-    setSelected(new Set());
-  }
-};
-
-  // Poll for call status every second
-useEffect(() => {
-  if (!polling || Object.keys(activeCallMap).length === 0) return;
-  let stopped = false;
-
-  async function poll() {
-    if (stopped) return;
     try {
-      const callIds = Object.keys(activeCallMap);
-      if (callIds.length === 0) return;
+      const selectedLeads = leads.filter(lead => selected.has(lead.id));
+      const numbers = selectedLeads
+        .map(l => l.phone)
+        .filter(Boolean)
+        .map(phone => formatPhone(phone as string));
 
-      console.log('Polling call status for callIds:', callIds);
+      console.log('Calling numbers:', numbers);
 
-      const statusRes = await fetch(`${API_URL}/callstatus`, {
+      const res = await fetch(`${API_URL}/makecall`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ callIds }), // send array of call IDs
+        body: JSON.stringify({ numbers: numbers.map(Number) }),
       });
 
-      if (statusRes.ok) {
-        const statusData = await statusRes.json();
-        console.log('callstatus response:', statusData);
+      if (!res.ok) throw new Error('Failed to initiate call');
+      const data = await res.json();
 
-        const statusMap: Record<string, string> = {};
-        let allDone = true;
+      console.log('makecall response:', data);
 
-        statusData.results.forEach((result: any) => {
-          const leadId = activeCallMap[result.callId];
-          if (leadId) {
-            const value = result.status ?? result.state ?? '-';
-            console.log(`Lead ${leadId} callId ${result.callId} status:`, value);
-            statusMap[leadId] = value;
-            if (!isTerminalStatus(value)) {
-              allDone = false;
-            }
-          }
-        });
+      // Map callId (data.id) to leadId
+      const callIdToLeadId: Record<string, string> = {};
 
-        setCallStatus(prev => {
-          console.log('Updating callStatus:', { ...prev, ...statusMap });
-          return { ...prev, ...statusMap };
-        });
-
-        if (allDone) {
-          setPolling(false);
-          setCallLoading(false);
-          setSelected(new Set());
-          setActiveCallMap({});
-          return;
+      data.results.forEach((result: CallResult) => {
+        const callId = result.data?.id;
+        const phone = String(result.number);
+        const lead = selectedLeads.find(l => formatPhone(l.phone) === phone);
+        if (lead && callId) {
+          callIdToLeadId[callId] = lead.id;
+          setCallStatus(prev => {
+            console.log(`Setting callStatus for lead ${lead.id} to 'initiating'`);
+            return { ...prev, [lead.id]: 'initiating' };
+          });
         }
-      }
-    } catch (e) {
-      setError('Failed to poll call status.');
-      setPolling(false);
+      });
+
+      console.log('callIdToLeadId mapping:', callIdToLeadId);
+
+      setActiveCallMap(callIdToLeadId);
+
+      // Start polling after 5 seconds
+      setTimeout(() => {
+        setPolling(true);
+      }, 1000);
+
+    } catch (e: any) {
+      setError(e.message || 'Unknown error');
       setCallLoading(false);
-      setActiveCallMap({});
+      setSelected(new Set());
+    }
+  };
+
+  // Poll for call status every second
+  useEffect(() => {
+    if (!polling || Object.keys(activeCallMap).length === 0) return;
+    let stopped = false;
+
+    async function poll() {
+      if (stopped) return;
+      try {
+        const callIds = Object.keys(activeCallMap);
+        if (callIds.length === 0) return;
+
+        console.log('Polling call status for callIds:', callIds);
+
+        const statusRes = await fetch(`${API_URL}/callstatus`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ callIds }), // send array of call IDs
+        });
+
+        if (statusRes.ok) {
+          const statusData = await statusRes.json();
+          console.log('callstatus response:', statusData);
+
+          const statusMap: Record<string, string> = {};
+          let allDone = true;
+
+          statusData.results.forEach((result: any) => {
+            const leadId = activeCallMap[result.callId];
+            if (leadId) {
+              const value = result.status ?? result.state ?? '-';
+              console.log(`Lead ${leadId} callId ${result.callId} status:`, value);
+              statusMap[leadId] = value;
+              if (!isTerminalStatus(value)) {
+                allDone = false;
+              }
+            }
+          });
+
+          setCallStatus(prev => {
+            console.log('Updating callStatus:', { ...prev, ...statusMap });
+            return { ...prev, ...statusMap };
+          });
+
+          if (allDone) {
+            setPolling(false);
+            setCallLoading(false);
+            setSelected(new Set());
+            setActiveCallMap({});
+            return;
+          }
+        }
+      } catch (e) {
+        setError('Failed to poll call status.');
+        setPolling(false);
+        setCallLoading(false);
+        setActiveCallMap({});
+      }
+
+      // Schedule next poll
+      pollingRef.current = setTimeout(poll, 1000);
     }
 
-    // Schedule next poll
-    pollingRef.current = setTimeout(poll, 1000);
-  }
+    poll();
 
-  poll();
+    return () => {
+      stopped = true;
+      if (pollingRef.current) clearTimeout(pollingRef.current);
+    };
+  }, [polling, activeCallMap]);
 
-  return () => {
-    stopped = true;
-    if (pollingRef.current) clearTimeout(pollingRef.current);
+  // --- Dialpad Logic ---
+  const handleDialpadInput = (val: string) => {
+    if (customCallLoading || customPolling) return;
+    if (val === 'back') setDialNumber(dialNumber.slice(0, -1));
+    else if (val === '+') {
+      if (!dialNumber.includes('+') && dialNumber.length === 0) setDialNumber('+');
+    } else if (/\d/.test(val)) {
+      setDialNumber(dialNumber + val);
+    }
   };
-}, [polling, activeCallMap]);
+  const handleDialpadClear = () => setDialNumber('');
 
-function isTerminalStatus(status: string) {
-  const val = status?.toLowerCase();
-  console.log('Checking terminal status for:', status, '->', val);
-  return val === 'hangup' || val === 'down' || val === 'failed' || val === 'completed' || val === 'answered' || val === 'busy';
-}
+  // --- Custom Call API ---
+  const handleCustomCall = async () => {
+    if (!dialNumber || customCallLoading || customPolling) return;
+    setCustomCallLoading(true);
+    setCustomError(null);
+    setCustomCallStatus('initiating');
+    try {
+      const formatted = dialNumber.startsWith('+') ? dialNumber.slice(1) : dialNumber;
+      const res = await fetch(`${API_URL}/makecall`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ numbers: [Number(formatted)] }),
+      });
+      if (!res.ok) throw new Error('Failed to initiate call');
+      const data = await res.json();
+      const callId = data.results?.[0]?.data?.id;
+      if (!callId) throw new Error('No call ID returned');
+      setCustomCallId(callId);
+      setTimeout(() => setCustomPolling(true), 1000);
+    } catch (e: any) {
+      setCustomError(e.message || 'Unknown error');
+      setCustomCallStatus('');
+      setCustomCallLoading(false);
+    }
+  };
+
+  // --- Custom Call Polling ---
+  useEffect(() => {
+    if (!customPolling || !customCallId) return;
+    let stopped = false;
+    async function poll() {
+      if (stopped) return;
+      try {
+        const statusRes = await fetch(`${API_URL}/callstatus`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ callIds: [customCallId] }),
+        });
+        if (statusRes.ok) {
+          const statusData = await statusRes.json();
+          const value = statusData.results?.[0]?.status ?? statusData.results?.[0]?.state ?? '-';
+          setCustomCallStatus(value);
+          if (isTerminalStatus(value)) {
+            setCustomPolling(false);
+            setCustomCallLoading(false);
+            setCustomCallId(null);
+            return;
+          }
+        }
+      } catch {
+        setCustomError('Failed to poll call status.');
+        setCustomPolling(false);
+        setCustomCallLoading(false);
+        setCustomCallId(null);
+      }
+      customPollingRef.current = setTimeout(poll, 1000);
+    }
+    poll();
+    return () => {
+      stopped = true;
+      if (customPollingRef.current) clearTimeout(customPollingRef.current);
+    };
+  }, [customPolling, customCallId]);
+
+  // --- Dialpad UI ---
+  const dialpadButtons = [
+    ['1', '2', '3'],
+    ['4', '5', '6'],
+    ['7', '8', '9'],
+    ['+', '0', 'back'],
+  ];
 
   // Get active lead IDs
   const activeLeadIds = useMemo(() => {
@@ -305,17 +395,126 @@ function isTerminalStatus(status: string) {
               className="mt-1 sm:mt-0 px-2 py-1 rounded bg-muted border border-border text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary w-full sm:w-56"
             />
           </div>
-          <Button
-            className={cn(
-              "bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-6 py-2 rounded-lg shadow transition",
-              callLoading || selected.size === 0 ? "opacity-60 cursor-not-allowed" : ""
-            )}
-            disabled={callLoading || selected.size === 0}
-            onClick={handleCall}
-          >
-            {callLoading ? 'Calling...' : 'CALL'}
-          </Button>
+          <div className="flex gap-2">
+            {/* Custom Call Button (left) */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2 border-primary text-primary hover:bg-primary/10"
+              onClick={() => setDialpadOpen(true)}
+              disabled={customCallLoading || customPolling}
+            >
+              <Phone className="w-4 h-4" />
+              Custom Call
+            </Button>
+            {/* Main CALL Button (right) */}
+            <Button
+              size="sm"
+              className={cn(
+                "bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-lg shadow transition px-4 py-2",
+                callLoading || selected.size === 0 ? "opacity-60 cursor-not-allowed" : ""
+              )}
+              disabled={callLoading || selected.size === 0}
+              onClick={handleCall}
+            >
+              {callLoading ? 'Calling...' : 'CALL'}
+            </Button>
+          </div>
         </div>
+        {/* Dialpad Modal */}
+        <Dialog open={dialpadOpen} onOpenChange={open => {
+          setDialpadOpen(open);
+          if (!open) {
+            setDialNumber('');
+            setCustomCallId(null);
+            setCustomCallStatus('');
+            setCustomCallLoading(false);
+            setCustomPolling(false);
+            setCustomError(null);
+          }
+        }}>
+          <DialogContent className="max-w-sm bg-card border border-border rounded-2xl shadow-xl p-6 flex flex-col items-center">
+            <DialogHeader className="w-full">
+              <DialogTitle className="text-lg font-bold text-primary flex items-center gap-2">
+                <Phone className="w-5 h-5" />
+                Custom Dialpad
+              </DialogTitle>
+              <DialogDescription className="text-muted-foreground text-xs mt-1">
+                Enter a number to call directly. Only one custom call at a time.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col items-center gap-4 w-full mt-2">
+              {/* Number Display */}
+              <div className="w-full flex justify-center">
+                <div className="w-[260px] bg-muted rounded-lg px-3 py-2 text-center font-mono text-xl tracking-widest text-foreground border border-border select-all transition-colors">
+                  {dialNumber || <span className="text-muted-foreground">Enter number</span>}
+                </div>
+              </div>
+              {/* Dialpad */}
+              <div className="grid grid-cols-3 gap-x-6 gap-y-4 mt-2 w-[220px]">
+                {dialpadButtons.flat().map((btn, i) => (
+                  <Button
+                    key={btn + i}
+                    variant="ghost"
+                    className={cn(
+                      'rounded-full h-11 w-11 text-lg font-mono flex items-center justify-center border border-border shadow-sm',
+                      'transition-all duration-150',
+                      btn === 'back' ? 'text-destructive' : 'text-foreground',
+                      'hover:bg-accent hover:text-accent-foreground active:bg-primary/10',
+                      customCallLoading || customPolling ? 'opacity-50 cursor-not-allowed' : ''
+                    )}
+                    onClick={() => handleDialpadInput(btn)}
+                    disabled={customCallLoading || customPolling || (btn === '+' && dialNumber.length > 0)}
+                  >
+                    {btn === 'back' ? <span>&larr;</span> : btn}
+                  </Button>
+                ))}
+              </div>
+              {/* Actions */}
+              <div className="flex gap-2 mt-1 w-full justify-center">
+                <Button
+                  variant="ghost"
+                  className="text-muted-foreground border border-border rounded-lg px-4"
+                  onClick={handleDialpadClear}
+                  disabled={customCallLoading || customPolling || !dialNumber}
+                >
+                  Clear
+                </Button>
+                <Button
+                  className="bg-primary text-primary-foreground font-semibold px-6 py-2 rounded-lg shadow-sm"
+                  onClick={handleCustomCall}
+                  disabled={!dialNumber || customCallLoading || customPolling}
+                >
+                  {customCallLoading ? 'Calling...' : 'Call'}
+                </Button>
+              </div>
+              {/* Live Call Status */}
+              {(customCallStatus || customCallLoading) && (
+                <div className="mt-2 w-full flex flex-col items-center">
+                  <span className="text-xs text-muted-foreground mb-1">Live Call Status</span>
+                  <span className={cn(
+                    'font-mono text-xl font-bold px-4 py-2 rounded-lg',
+                    'transition-colors duration-300',
+                    customCallStatus === 'Up'
+                      ? 'text-green-600 dark:text-green-400'
+                      : customCallStatus === 'Ringing'
+                      ? 'text-yellow-600 dark:text-yellow-400'
+                      : isTerminalStatus(customCallStatus)
+                      ? 'text-destructive'
+                      : 'text-muted-foreground'
+                  )}>
+                    {customCallStatus || 'initiating'}
+                  </span>
+                </div>
+              )}
+              {customError && (
+                <div className="mt-2 text-destructive bg-destructive/10 px-4 py-2 rounded-lg border border-destructive text-center w-full">
+                  {customError}
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
         <div className="rounded-xl overflow-hidden shadow-lg bg-card border border-border">
           <div className="overflow-x-auto">
             <table className="min-w-full text-left font-mono text-xs">
