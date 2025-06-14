@@ -482,15 +482,17 @@ export default function AnalyticsDashboardPage() {
     const map: Record<string, number> = {};
     callLogs.forEach((l) => {
       const day = getShortDate(l.start);
-      const cost = typeof l.cost === "number" ? l.cost : Number(l.cost) || 0;
+      let cost = typeof l.cost === "number" ? l.cost : Number(l.cost) || 0;
+      // Convert to INR if usdInrRate is available
+      if (usdInrRate) cost = cost * usdInrRate;
       if (!map[day]) map[day] = 0;
       map[day] += cost;
     });
     // Sort by date ascending (oldest to newest)
     return Object.entries(map)
-      .map(([k, v]) => ({ name: k, value: v }))
+      .map(([k, v]) => ({ name: k, value: Number(v.toFixed(3)) }))
       .sort((a, b) => new Date(a.name).getTime() - new Date(b.name).getTime());
-  }, [callLogs]);
+  }, [callLogs, usdInrRate]);
 
   const callsPerDay = useMemo(() => {
     const map: Record<string, number> = {};
