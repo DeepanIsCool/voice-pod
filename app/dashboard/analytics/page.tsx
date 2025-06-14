@@ -22,6 +22,34 @@ import {
   Legend,
 } from "recharts";
 import { useEffect, useMemo, useState } from "react";
+// --- USD to INR conversion helpers (copied from call-logs) ---
+function getCachedUsdInr() {
+  if (typeof window === "undefined") return null;
+  const item = localStorage.getItem("usdInrRate");
+  if (!item) return null;
+  try {
+    const parsed = JSON.parse(item);
+    if (
+      parsed &&
+      typeof parsed.rate === "number" &&
+      typeof parsed.timestamp === "number"
+    ) {
+      // Valid for 12 hours
+      if (Date.now() - parsed.timestamp < 12 * 60 * 60 * 1000) {
+        return parsed.rate;
+      }
+    }
+  } catch {}
+  return null;
+}
+
+function setCachedUsdInr(rate: number) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(
+    "usdInrRate",
+    JSON.stringify({ rate, timestamp: Date.now() })
+  );
+}
 import { Info, RefreshCw } from "lucide-react";
 import { useTheme } from "next-themes";
 
@@ -307,6 +335,50 @@ export default function AnalyticsDashboardPage() {
   const [refreshing, setRefreshing] = useState(false);
   const { resolvedTheme } = useTheme();
 
+  // --- Currency conversion state ---
+  const [usdInrRate, setUsdInrRate] = useState<number | null>(getCachedUsdInr() || null);
+  const [usdInrError, setUsdInrError] = useState<string | null>(null);
+
+  async function fetchUsdInrRate() {
+    setUsdInrError(null);
+    // Try primary API
+    try {
+      const res = await fetch("https://api.exchangerate.host/convert?from=USD&to=INR");
+      const data = await res.json();
+      if (data && typeof data.result === "number" && data.result > 0) {
+        setUsdInrRate(Number(data.result));
+        setCachedUsdInr(Number(data.result));
+        return;
+      }
+      // If result is missing or invalid, try fallback
+      console.warn("Primary API failed or returned invalid result", data);
+    } catch (e) {
+      console.warn("Primary API fetch failed", e);
+    }
+    // Fallback: try another API
+    try {
+      const res2 = await fetch("https://open.er-api.com/v6/latest/USD");
+      const data2 = await res2.json();
+      if (data2 && data2.rates && typeof data2.rates.INR === "number" && data2.rates.INR > 0) {
+        setUsdInrRate(Number(data2.rates.INR));
+        setCachedUsdInr(Number(data2.rates.INR));
+        return;
+      }
+      console.warn("Fallback API failed or returned invalid result", data2);
+      setUsdInrError("Failed to get rate");
+    } catch (e2) {
+      setUsdInrError("Failed to fetch USD→INR rate.");
+      console.warn("Fallback API fetch failed", e2);
+    }
+  }
+
+  useEffect(() => {
+    if (!usdInrRate) fetchUsdInrRate();
+    const interval = setInterval(fetchUsdInrRate, 1000 * 60 * 60); // hourly refresh
+    return () => clearInterval(interval);
+    // eslint-disable-next-line
+  }, []);
+
   // API FETCH
   const fetchCallLogs = async () => {
     setRefreshing(true);
@@ -357,6 +429,14 @@ export default function AnalyticsDashboardPage() {
         : callLogs.reduce((acc, l) => acc + l.duration, 0) / callLogs.length,
     [callLogs]
   );
+
+  // --- Average cost in INR ---
+  const avgCostInr = useMemo(() => {
+    if (!callLogs.length) return 0;
+    const totalUsd = callLogs.reduce((acc, l) => acc + (typeof l.cost === 'number' ? l.cost : Number(l.cost) || 0), 0);
+    if (!usdInrRate) return 0;
+    return totalUsd * usdInrRate / callLogs.length;
+  }, [callLogs, usdInrRate]);
   const avgLatency = useMemo(() => {
     const filtered = callLogs.filter((l) => typeof l.latency === "number");
     return filtered.length
@@ -364,14 +444,23 @@ export default function AnalyticsDashboardPage() {
           filtered.length
       : 0;
   }, [callLogs]);
-  const totalLeads = useMemo(() => {
-    const s = new Set<string>();
-    callLogs.forEach((l) => {
-      if (l.src) s.add(l.src);
-      if (l.dst) s.add(l.dst);
-    });
-    return s.size;
-  }, [callLogs]);
+  // --- Leads count from leads API ---
+  const [totalLeads, setTotalLeads] = useState<number>(0);
+  useEffect(() => {
+    async function fetchLeadsCount() {
+      try {
+        const res = await fetch("https://ai.rajatkhandelwal.com/leads", {
+          headers: getAuthHeaders(),
+        });
+        if (!res.ok) throw new Error("Failed to fetch leads");
+        const data = await res.json();
+        setTotalLeads(Array.isArray(data) ? data.length : 0);
+      } catch {
+        setTotalLeads(0);
+      }
+    }
+    fetchLeadsCount();
+  }, []);
   const uniqueLeads = useMemo(() => {
     const leads = new Set<string>();
     callLogs.forEach((l) => {
@@ -476,19 +565,29 @@ export default function AnalyticsDashboardPage() {
               tooltip="Unique Leads = Unique src numbers"
               className="min-w-[120px] px-3 py-4"
             />
-            <MetricCard
-              title="Avg Cost"
-              loading={isLoading}
-              value={
-                callLogs.length === 0
-                  ? 0
-                  : `₹${(
-                      callLogs.reduce((acc, l) => acc + (typeof l.cost === 'number' ? l.cost : Number(l.cost) || 0), 0) / callLogs.length
-                    ).toFixed(4)}`
-              }
-              tooltip="Average Cost = Total cost of all calls ÷ Number of calls"
-              className="min-w-[120px] px-3 py-4"
-            />
+          <MetricCard
+            title="Avg Cost"
+            loading={isLoading}
+            value={
+              isLoading
+                ? undefined
+                : usdInrRate
+                  ? `₹${avgCostInr.toFixed(2)}`
+                  : callLogs.length === 0
+                    ? 0
+                    : `$${(
+                        callLogs.reduce((acc, l) => acc + (typeof l.cost === 'number' ? l.cost : Number(l.cost) || 0), 0) / callLogs.length
+                      ).toFixed(4)}`
+            }
+            tooltip={
+              usdInrRate
+                ? `Average Cost = Total cost of all calls ÷ Number of calls, converted to INR.\nCurrent rate: 1 USD = ₹${usdInrRate.toFixed(2)}`
+                : usdInrError
+                  ? `Average Cost = Total cost of all calls ÷ Number of calls.\n${usdInrError}`
+                  : "Average Cost = Total cost of all calls ÷ Number of calls"
+            }
+            className="min-w-[120px] px-3 py-4"
+          />
           </div>
           <PieChartCard
             title="Incoming / Outgoing"
