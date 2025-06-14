@@ -26,12 +26,8 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <SidebarProvider>
-            <div className="flex flex-row min-h-screen w-full bg-background transition-all duration-300">
-              {children}
-            </div>
-            <Toaster />
-          </SidebarProvider>
+          {children}
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>
