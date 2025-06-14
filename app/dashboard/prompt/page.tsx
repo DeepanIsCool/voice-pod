@@ -398,7 +398,7 @@ export default function PromptManagement() {
                 render={({ field }) => (
                   <Textarea
                     {...field}
-                    className="min-h-[200px] font-mono text-sm"
+                    className="min-h-[550px] font-mono text-sm"
                     placeholder="Enter system prompt..."
                   />
                 )}
