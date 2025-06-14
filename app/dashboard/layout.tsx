@@ -5,9 +5,16 @@ import type { ReactNode } from "react";
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-background">
+      <div className="min-h-screen w-full bg-background">
         <DashboardSidebar />
-        <main className="flex-1 flex flex-col items-center justify-center p-8">
+        <main
+          className="flex-1 flex flex-col items-center justify-center p-8 transition-all duration-300"
+          // Responsive margin for expanded/collapsed sidebar
+          data-sidebar-main
+          style={{
+            marginLeft: `var(--sidebar-width, 16rem)`
+          }}
+        >
           {children}
         </main>
       </div>

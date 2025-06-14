@@ -57,11 +57,17 @@ export function DashboardSidebar() {
     <aside
       data-state={state}
       className={`
-        group/sidebar flex flex-col h-screen bg-white dark:bg-[#18181b] border-r border-border shadow-lg
+        group/sidebar flex flex-col bg-white dark:bg-[#18181b] border-r border-border shadow-lg
         transition-all duration-300 ease-in-out
         ${state === "collapsed" ? "w-16 min-w-[4rem] max-w-[4rem]" : "w-64 min-w-[16rem] max-w-[16rem]"}
         z-30
+        fixed top-0 left-0 h-screen
       `}
+      style={{
+        height: '100vh',
+        // Set a CSS variable for the main content margin
+        '--sidebar-width': state === 'collapsed' ? '4rem' : '16rem'
+      } as React.CSSProperties}
     >
       {/* Header with logo, name, and toggle */}
       <div className="flex items-center justify-between px-4 py-4 border-b border-border">
