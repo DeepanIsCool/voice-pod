@@ -325,8 +325,8 @@ export default function PromptManagement() {
 
   return (
     <div className="flex flex-col h-full min-h-[80vh] w-full px-2 sm:px-4 py-6 space-y-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Agent Configuration</h1>
+      <div className="flex items-center justify-between mb-2 sm:mb-4 w-full">
+        <h1 className="text-3xl font-bold tracking-tight text-primary">Agent Configuration</h1>
         <Button
           type="button"
           variant="outline"

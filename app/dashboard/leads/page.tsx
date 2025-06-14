@@ -373,6 +373,8 @@ export default function LeadsDashboardPage() {
 
   return (
     <div className="flex flex-col h-full min-h-[80vh] w-full px-2 sm:px-4 py-6 space-y-8">
+      {/* Page Heading */}
+      <h1 className="text-3xl font-bold tracking-tight text-primary mb-2 sm:mb-4">Lead Management</h1>
       {/* User Details Pop Up */}
       <Dialog open={userModal.open} onOpenChange={closeUserModal}>
         <DialogContent className="max-w-2xl w-full bg-card border border-border rounded-2xl shadow-2xl p-8 sm:p-10">

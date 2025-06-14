@@ -1,6 +1,6 @@
 "use client";
 
-import { Trash2, Copy, Pause, Play, Volume2 } from "lucide-react";
+import { Trash2, Copy, Pause, Play, Volume2, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -20,6 +20,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   type ColumnDef,
   FilterFn,
   flexRender,
@@ -28,7 +34,7 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   type SortingState,
-  useReactTable
+  useReactTable,
 } from "@tanstack/react-table";
 import { useRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -36,6 +42,12 @@ import { useToast } from "@/components/ui/use-toast";
 import { getAuthHeaders } from "@/lib/auth";
 import { useEffect, useState } from "react";
 
+// Custom hook to check if component has mounted (client-only rendering)
+function useHasMounted() {
+  const [hasMounted, setHasMounted] = useState(false);
+  useEffect(() => setHasMounted(true), []);
+  return hasMounted;
+}
 
 interface Transcription {
   role: string;
@@ -70,7 +82,6 @@ interface CallLog {
   Summary?: Array<{ transcription: Transcription[] }>;
   summary?: Array<{ transcription: Transcription[] }>;
 }
-
 
 // ---- AUDIO PLAYER ----
 function getAudioUrl(lastdata: string | undefined) {
@@ -249,11 +260,42 @@ const srcDstGlobalFilter: FilterFn<CallLog> = (row, _columnId, filterValue) => {
   return src.includes(value) || dst.includes(value);
 };
 
+function getCachedUsdInr() {
+  if (typeof window === "undefined") return null;
+  const item = localStorage.getItem("usdInrRate");
+  if (!item) return null;
+  try {
+    const parsed = JSON.parse(item);
+    if (
+      parsed &&
+      typeof parsed.rate === "number" &&
+      typeof parsed.timestamp === "number"
+    ) {
+      // Valid for 12 hours
+      if (Date.now() - parsed.timestamp < 12 * 60 * 60 * 1000) {
+        return parsed.rate;
+      }
+    }
+  } catch {}
+  return null;
+}
+
+function setCachedUsdInr(rate: number) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(
+    "usdInrRate",
+    JSON.stringify({ rate, timestamp: Date.now() })
+  );
+}
+
 export default function Dashboard() {
+  const hasMounted = useHasMounted();
   const [callLogs, setCallLogs] = useState<CallLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const [dockerStatus, setDockerStatus] = useState<"ok" | "error" | "loading">("loading");
+  const [dockerStatus, setDockerStatus] = useState<
+    "ok" | "error" | "loading"
+  >("loading");
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [selectedLog, setSelectedLog] = useState<CallLog | null>(null);
@@ -263,6 +305,53 @@ export default function Dashboard() {
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const selectAllRef = useRef<HTMLButtonElement>(null);
 
+  // --- Currency conversion ---
+  const [usdInrRate, setUsdInrRate] = useState<number | null>(
+    getCachedUsdInr() || null
+  );
+  const [usdInrError, setUsdInrError] = useState<string | null>(null);
+
+  async function fetchUsdInrRate() {
+    setUsdInrError(null);
+    // Try primary API
+    try {
+      const res = await fetch("https://api.exchangerate.host/convert?from=USD&to=INR");
+      const data = await res.json();
+      if (data && typeof data.result === "number" && data.result > 0) {
+        setUsdInrRate(Number(data.result));
+        setCachedUsdInr(Number(data.result));
+        return;
+      }
+      // If result is missing or invalid, try fallback
+      console.warn("Primary API failed or returned invalid result", data);
+    } catch (e) {
+      console.warn("Primary API fetch failed", e);
+    }
+    // Fallback: try another API
+    try {
+      const res2 = await fetch("https://open.er-api.com/v6/latest/USD");
+      const data2 = await res2.json();
+      if (data2 && data2.rates && typeof data2.rates.INR === "number" && data2.rates.INR > 0) {
+        setUsdInrRate(Number(data2.rates.INR));
+        setCachedUsdInr(Number(data2.rates.INR));
+        return;
+      }
+      console.warn("Fallback API failed or returned invalid result", data2);
+      setUsdInrError("Failed to get rate");
+    } catch (e2) {
+      setUsdInrError("Failed to fetch USD→INR rate.");
+      console.warn("Fallback API fetch failed", e2);
+    }
+  }
+
+  useEffect(() => {
+    if (!usdInrRate) fetchUsdInrRate();
+    const interval = setInterval(fetchUsdInrRate, 1000 * 60 * 60); // hourly refresh
+    return () => clearInterval(interval);
+    // eslint-disable-next-line
+  }, []);
+
+  // --- Docker health ---
   useEffect(() => {
     let cancelled = false;
     let first = true;
@@ -296,6 +385,7 @@ export default function Dashboard() {
     };
   }, []);
 
+  // --- Call logs ---
   useEffect(() => {
     let interval: NodeJS.Timeout;
     async function fetchCallLogs() {
@@ -362,23 +452,31 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (selectAllRef.current) {
-      const input = selectAllRef.current.querySelector('input');
+      const input = selectAllRef.current.querySelector("input");
       if (input) {
-        input.indeterminate = selectedRows.size > 0 && selectedRows.size < logs.filter(l => l.lastdata).length;
+        input.indeterminate =
+          selectedRows.size > 0 &&
+          selectedRows.size < logs.filter((l) => l.lastdata).length;
       }
     }
   }, [selectedRows, logs]);
 
+  // --- TABLE COLUMNS ---
   const columns: ColumnDef<CallLog>[] = [
     {
       id: "select",
       header: () => (
         <Checkbox
           ref={selectAllRef}
-          checked={logs.length > 0 && selectedRows.size === logs.filter(l => l.lastdata).length}
-          onCheckedChange={checked => {
+          checked={
+            logs.length > 0 &&
+            selectedRows.size === logs.filter((l) => l.lastdata).length
+          }
+          onCheckedChange={(checked) => {
             if (checked) {
-              setSelectedRows(new Set(logs.filter(l => l.lastdata).map(l => l.lastdata!)));
+              setSelectedRows(
+                new Set(logs.filter((l) => l.lastdata).map((l) => l.lastdata!))
+              );
             } else {
               setSelectedRows(new Set());
             }
@@ -393,7 +491,7 @@ export default function Dashboard() {
           <Checkbox
             checked={selectedRows.has(lastdata)}
             onCheckedChange={() => {
-              setSelectedRows(prev => {
+              setSelectedRows((prev) => {
                 const next = new Set(prev);
                 if (next.has(lastdata)) next.delete(lastdata);
                 else next.add(lastdata);
@@ -401,7 +499,7 @@ export default function Dashboard() {
               });
             }}
             aria-label={`Select log ${lastdata}`}
-            onClick={e => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
           />
         );
       },
@@ -411,6 +509,7 @@ export default function Dashboard() {
       accessorKey: "date",
       header: "Date",
       cell: ({ row }) => {
+        if (!hasMounted) return <span>--</span>;
         const date = new Date(row.original.start);
         const day = date.getDate();
         const daySuffix =
@@ -423,17 +522,14 @@ export default function Dashboard() {
             : "th";
         const month = date.toLocaleString("en-US", { month: "short" });
         const year = date.getFullYear();
-        return (
-          <span>
-            {`${day}${daySuffix} ${month} ${year}`}
-          </span>
-        );
+        return <span>{`${day}${daySuffix} ${month} ${year}`}</span>;
       },
     },
     {
       accessorKey: "time",
       header: "Time",
       cell: ({ row }) => {
+        if (!hasMounted) return <span>--:--</span>;
         const date = new Date(row.original.start);
         return (
           <span>
@@ -465,10 +561,56 @@ export default function Dashboard() {
         );
       },
     },
+    // --- COST COLUMN WITH LIVE CONVERSION ---
     {
       accessorKey: "cost",
-      header: "Cost",
-      cell: ({ row }) => <div>{row.original.cost ?? "$0.00"}</div>,
+      header: () => (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex items-center gap-1">
+                Cost <Info className="w-4 h-4 text-blue-400 dark:text-blue-300" />
+              </span>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs text-xs">
+              Shows per-call cost converted to INR using the latest exchange rate.<br />
+              <b>Formula:</b> <code>Cost (USD) × USD→INR Rate</code>
+              <br />
+              {usdInrRate && (
+                <span>
+                  <b>Current rate:</b> 1 USD = ₹{usdInrRate.toFixed(2)}
+                </span>
+              )}
+              {usdInrError && (
+                <span className="text-destructive">
+                  <br />
+                  {usdInrError}
+                </span>
+              )}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      ),
+      cell: ({ row }) => {
+        const cost = Number(row.original.cost) || 0;
+        if (isLoading)
+          return <Skeleton className="w-12 h-6 rounded bg-muted" />;
+        if (!usdInrRate)
+          return <span>{cost ? `$${cost.toFixed(2)}` : "—"}</span>;
+        const inr = cost * usdInrRate;
+        return (
+          <div>
+            <span className="font-semibold text-green-700 dark:text-green-300">
+              ₹{inr.toFixed(2)}
+            </span>
+            {cost > 0 && (
+              <span className="ml-1 text-xs text-muted-foreground">
+                (USD ${cost.toFixed(2)})
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "sessionid",
@@ -485,7 +627,13 @@ export default function Dashboard() {
       cell: ({ row }) => {
         let raw = row.original.from || row.original.src;
         if (!raw || raw === "919240011600") return <div>Agent</div>;
-        if (typeof raw === "string" && raw.startsWith("91") && raw.length > 10) raw = raw.slice(2);
+        if (
+          typeof raw === "string" &&
+          raw.startsWith("91") &&
+          raw.length > 10
+        )
+          raw = raw.slice(2);
+        if (typeof raw === "string") raw = raw.replace(/^0+/, "");
         return <div>{raw}</div>;
       },
     },
@@ -496,9 +644,19 @@ export default function Dashboard() {
         let raw = row.original.to || row.original.dst;
         if (!raw) return <div>Agent</div>;
         let normalized = String(raw).replace(/^0+/, "");
-        if (normalized === "919240011600" || normalized === "919240011600".replace(/^91/, "")) return <div>Agent</div>;
-        if (normalized === "919240011600" || normalized === "00919240011600" || normalized === "9240011600") return <div>Agent</div>;
-        if (normalized.startsWith("91") && normalized.length > 10) normalized = normalized.slice(2);
+        if (
+          normalized === "919240011600" ||
+          normalized === "919240011600".replace(/^91/, "")
+        )
+          return <div>Agent</div>;
+        if (
+          normalized === "919240011600" ||
+          normalized === "00919240011600" ||
+          normalized === "9240011600"
+        )
+          return <div>Agent</div>;
+        if (normalized.startsWith("91") && normalized.length > 10)
+          normalized = normalized.slice(2);
         return <div>{normalized}</div>;
       },
     },
@@ -507,9 +665,11 @@ export default function Dashboard() {
       header: "Average Latency",
       cell: ({ row }) => {
         const latency = row.original.latency;
-        return latency !== undefined && latency !== null
-          ? <span>{latency} ms</span>
-          : <span className="text-muted-foreground">-</span>;
+        return latency !== undefined && latency !== null ? (
+          <span>{latency} ms</span>
+        ) : (
+          <span className="text-muted-foreground">-</span>
+        );
       },
     },
   ];
@@ -561,34 +721,93 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col h-full min-h-[80vh] w-full px-2 sm:px-4 py-6 space-y-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Call Logs</h1>
+      <div className="flex items-center justify-between mb-2 sm:mb-4 w-full">
+        <h1 className="text-3xl font-bold tracking-tight text-primary">
+          Call Logs
+        </h1>
+        {hasMounted && usdInrRate && (
+          <span className="text-xs text-muted-foreground ml-4">
+            1 USD = ₹{usdInrRate.toFixed(2)}
+          </span>
+        )}
       </div>
 
       {/* Stats Row (includes status card) */}
       <div className="flex flex-wrap w-full gap-x-6 gap-y-4 justify-between items-stretch">
         {/* ...existing code for stats row... */}
         <div className="rounded-lg bg-muted shadow p-4 flex flex-col justify-center flex-1 min-w-[170px]">
-          <span className="text-sm font-medium text-muted-foreground">Total Calls</span>
-          {isLoading ? (<Skeleton className="h-7 w-20 mt-2" />) : (<span className="text-2xl font-bold mt-1">{callLogs.length}</span>)}
+          <span className="text-sm font-medium text-muted-foreground">
+            Total Calls
+          </span>
+          {isLoading ? (
+            <Skeleton className="h-7 w-20 mt-2" />
+          ) : (
+            <span className="text-2xl font-bold mt-1">
+              {callLogs.length}
+            </span>
+          )}
         </div>
         <div className="rounded-lg bg-muted shadow p-4 flex flex-col justify-center flex-1 min-w-[170px]">
-          <span className="text-sm font-medium text-muted-foreground">Unique Users</span>
-          {isLoading ? (<Skeleton className="h-7 w-20 mt-2" />) : (<span className="text-2xl font-bold mt-1">{new Set(callLogs.map((log) => log.src)).size}</span>)}
+          <span className="text-sm font-medium text-muted-foreground">
+            Unique Users
+          </span>
+          {isLoading ? (
+            <Skeleton className="h-7 w-20 mt-2" />
+          ) : (
+            <span className="text-2xl font-bold mt-1">
+              {new Set(callLogs.map((log) => log.src)).size}
+            </span>
+          )}
         </div>
         <div className="rounded-lg bg-muted shadow p-4 flex flex-col justify-center flex-1 min-w-[170px]">
-          <span className="text-sm font-medium text-muted-foreground">Avg. Duration</span>
-          {isLoading ? (<Skeleton className="h-7 w-20 mt-2" />) : (<span className="text-2xl font-bold mt-1">{callLogs.length > 0 ? `${(callLogs.reduce((acc, log) => acc + log.duration, 0) / callLogs.length).toFixed(2)}s` : "0s"}</span>)}
+          <span className="text-sm font-medium text-muted-foreground">
+            Avg. Duration
+          </span>
+          {isLoading ? (
+            <Skeleton className="h-7 w-20 mt-2" />
+          ) : (
+            <span className="text-2xl font-bold mt-1">
+              {callLogs.length > 0
+                ? `${(
+                    callLogs.reduce((acc, log) => acc + log.duration, 0) /
+                    callLogs.length
+                  ).toFixed(2)}s`
+                : "0s"}
+            </span>
+          )}
         </div>
         <div className="rounded-lg bg-muted shadow p-4 flex flex-col justify-center flex-1 min-w-[170px]">
-          <span className="text-sm font-medium text-muted-foreground">Last Call</span>
-          {isLoading ? (<Skeleton className="h-7 w-20 mt-2" />) : (<span className="text-2xl font-bold mt-1">{callLogs.length > 0 ? new Date(Math.max(...callLogs.map((log) => new Date(log.start).getTime()))).toLocaleDateString() : "N/A"}</span>)}
+          <span className="text-sm font-medium text-muted-foreground">
+            Last Call
+          </span>
+          {isLoading ? (
+            <Skeleton className="h-7 w-20 mt-2" />
+          ) : (
+            <span className="text-2xl font-bold mt-1">
+              {hasMounted && callLogs.length > 0
+                ? new Date(
+                    Math.max(
+                      ...callLogs.map((log) =>
+                        new Date(log.start).getTime()
+                      )
+                    )
+                  ).toLocaleDateString()
+                : !hasMounted
+                ? "--/--/----"
+                : "N/A"}
+            </span>
+          )}
         </div>
         <div className="rounded-lg bg-muted shadow p-4 flex flex-col justify-center flex-1 min-w-[170px]">
-          <span className="text-sm font-medium text-muted-foreground">Status</span>
+          <span className="text-sm font-medium text-muted-foreground">
+            Status
+          </span>
           <div className="flex items-center gap-2 mt-1">
             <span className="text-2xl font-bold">{statusText}</span>
-            <span className={`inline-block w-4 h-4 rounded-full ${statusColor}`} aria-label={`Status: ${statusText}`}></span>
+            <span
+              className={`inline-block w-4 h-4 rounded-full ${statusColor}`}
+              aria-label={`Status: ${statusText}`}
+            ></span>
           </div>
         </div>
       </div>
@@ -619,22 +838,31 @@ export default function Dashboard() {
                   if (selectedRows.size === 0) return;
                   setDeleting(true);
                   try {
-                    const res = await fetch('https://ai.rajatkhandelwal.com/deletecalllog', {
-                      method: 'POST',
-                      headers: {
-                        ...getAuthHeaders(),
-                        'Accept': '*/*',
-                      },
-                      body: JSON.stringify({ lastdata: Array.from(selectedRows) }),
-                    });
+                    const res = await fetch(
+                      "https://ai.rajatkhandelwal.com/deletecalllog",
+                      {
+                        method: "POST",
+                        headers: {
+                          ...getAuthHeaders(),
+                          Accept: "*/*",
+                        },
+                        body: JSON.stringify({
+                          lastdata: Array.from(selectedRows),
+                        }),
+                      }
+                    );
                     if (res.ok) {
-                      setLogs(prev => prev.filter(l => !l.lastdata || !selectedRows.has(l.lastdata)));
+                      setLogs((prev) =>
+                        prev.filter(
+                          (l) => !l.lastdata || !selectedRows.has(l.lastdata)
+                        )
+                      );
                       setSelectedRows(new Set());
                     } else {
-                      alert('Failed to delete selected call logs.');
+                      alert("Failed to delete selected call logs.");
                     }
                   } catch {
-                    alert('Failed to delete selected call logs.');
+                    alert("Failed to delete selected call logs.");
                   } finally {
                     setDeleting(false);
                   }
@@ -718,7 +946,8 @@ export default function Dashboard() {
                 Previous
               </Button>
               <span className="text-sm font-mono opacity-80 select-none">
-                Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+                Page {table.getState().pagination.pageIndex + 1} of{" "}
+                {table.getPageCount()}
               </span>
               <Button
                 variant="outline"
@@ -746,22 +975,31 @@ export default function Dashboard() {
                         onClick={async () => {
                           setDeleting(true);
                           try {
-                            const res = await fetch('https://ai.rajatkhandelwal.com/deletecalllog', {
-                              method: 'POST',
-                              headers: {
-                                ...getAuthHeaders(),
-                                'Accept': '*/*',
-                              },
-                              body: JSON.stringify({ lastdata: [selectedLog.lastdata] }),
-                            });
+                            const res = await fetch(
+                              "https://ai.rajatkhandelwal.com/deletecalllog",
+                              {
+                                method: "POST",
+                                headers: {
+                                  ...getAuthHeaders(),
+                                  Accept: "*/*",
+                                },
+                                body: JSON.stringify({
+                                  lastdata: [selectedLog.lastdata],
+                                }),
+                              }
+                            );
                             if (res.ok) {
-                              setLogs(prev => prev.filter(l => l.lastdata !== selectedLog.lastdata));
+                              setLogs((prev) =>
+                                prev.filter(
+                                  (l) => l.lastdata !== selectedLog.lastdata
+                                )
+                              );
                               setSelectedLog(null);
                             } else {
-                              alert('Failed to delete call log.');
+                              alert("Failed to delete call log.");
                             }
                           } catch {
-                            alert('Failed to delete call log.');
+                            alert("Failed to delete call log.");
                           } finally {
                             setDeleting(false);
                           }
@@ -778,37 +1016,43 @@ export default function Dashboard() {
                       <div>
                         <span className="font-medium">Date:</span>
                         <div>
-                          {(() => {
-                            const date = new Date(selectedLog.start);
-                            const day = date.getDate();
-                            const daySuffix =
-                              day % 10 === 1 && day !== 11
-                                ? "st"
-                                : day % 10 === 2 && day !== 12
-                                ? "nd"
-                                : day % 10 === 3 && day !== 13
-                                ? "rd"
-                                : "th";
-                            const month = date.toLocaleString("en-US", { month: "short" });
-                            const year = date.getFullYear();
-                            return `${day}${daySuffix} ${month} ${year}`;
-                          })()}
+                          {hasMounted
+                            ? (() => {
+                                const date = new Date(selectedLog.start);
+                                const day = date.getDate();
+                                const daySuffix =
+                                  day % 10 === 1 && day !== 11
+                                    ? "st"
+                                    : day % 10 === 2 && day !== 12
+                                    ? "nd"
+                                    : day % 10 === 3 && day !== 13
+                                    ? "rd"
+                                    : "th";
+                                const month = date.toLocaleString("en-US", {
+                                  month: "short",
+                                });
+                                const year = date.getFullYear();
+                                return `${day}${daySuffix} ${month} ${year}`;
+                              })()
+                            : "--"}
                         </div>
                       </div>
                       <div>
                         <span className="font-medium">Time:</span>
                         <div>
-                          {(() => {
-                            const date = new Date(selectedLog.start);
-                            return date
-                              .toLocaleTimeString("en-US", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                                hour12: true,
-                              })
-                              .replace("AM", "am")
-                              .replace("PM", "pm");
-                          })()}
+                          {hasMounted
+                            ? (() => {
+                                const date = new Date(selectedLog.start);
+                                return date
+                                  .toLocaleTimeString("en-US", {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    hour12: true,
+                                  })
+                                  .replace("AM", "am")
+                                  .replace("PM", "pm");
+                              })()
+                            : "--:--"}
                         </div>
                       </div>
                       <div>
@@ -821,9 +1065,13 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <div>
-                      <h3 className="text-base font-semibold mb-2">Call Recording</h3>
+                      <h3 className="text-base font-semibold mb-2">
+                        Call Recording
+                      </h3>
                       {selectedLog.lastdata ? (
-                        <AudioPlayer audioUrl={getAudioUrl(selectedLog.lastdata)} />
+                        <AudioPlayer
+                          audioUrl={getAudioUrl(selectedLog.lastdata)}
+                        />
                       ) : (
                         <div className="text-muted-foreground text-sm">
                           No audio recording available.
@@ -841,7 +1089,9 @@ export default function Dashboard() {
                             onClick={handleCopyTranscript}
                           >
                             <Copy className="w-4 h-4" />
-                            {copyStatus === "copied" ? "Copied!" : "Copy All"}
+                            {copyStatus === "copied"
+                              ? "Copied!"
+                              : "Copy All"}
                           </Button>
                         )}
                       </div>
