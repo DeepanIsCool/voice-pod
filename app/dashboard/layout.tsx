@@ -1,46 +1,13 @@
-//app/dashboard/layout.tsx
-
-"use client";
-
-import type React from "react";
-
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { DashboardSidebar } from "@/components/dashboard-sidebar";
-import { useAuth } from "@/lib/auth";
-import { Loader2 } from "lucide-react";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import type { ReactNode } from "react";
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const { isLoading, token } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!isLoading && !token) {
-      router.push("/");
-    }
-  }, [isLoading, token, router]);
-
-  if (isLoading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
+export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
-    <SidebarProvider>
-      <div className="flex h-screen w-screen overflow-hidden">
-        <DashboardSidebar />
-        <div className="flex-1 overflow-auto">
-          <div className="w-full p-6">{children}</div>
-        </div>
-      </div>
-    </SidebarProvider>
+    <div className="flex min-h-screen w-full bg-background">
+      <DashboardSidebar />
+      <main className="flex-1 flex flex-col items-center justify-center p-8">
+        {children}
+      </main>
+    </div>
   );
-}
+} 

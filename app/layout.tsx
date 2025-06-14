@@ -1,10 +1,10 @@
 //app/layout.tsx
 
-import type React from "react"
-import { Inter } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { Toaster } from "@/components/ui/toaster"
+import { Inter } from "next/font/google"
+import type React from "react"
 import "./globals.css"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -27,7 +27,9 @@ export default function RootLayout({
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <SidebarProvider>
-            {children}
+            <div className="flex flex-row min-h-screen w-full bg-background transition-all duration-300">
+              {children}
+            </div>
             <Toaster />
           </SidebarProvider>
         </ThemeProvider>

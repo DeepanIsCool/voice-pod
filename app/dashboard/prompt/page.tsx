@@ -1,29 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useForm, Controller } from "react-hook-form";
-import { Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { getAuthHeaders } from "@/lib/auth";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, RotateCcw, Save } from "lucide-react";
+import { getAuthHeaders } from "@/lib/auth";
+import { Info, Loader2, RotateCcw, Save } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 
 const MODEL_OPTIONS = [
   {
@@ -325,113 +324,111 @@ export default function PromptManagement() {
   };
 
   return (
-    <TooltipProvider>
-      <div className="w-full min-h-[90vh] flex justify-center items-start bg-muted/60 dark:bg-background py-12">
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          className="w-full max-w-6xl bg-card shadow-xl rounded-2xl px-4 sm:px-12 py-10 flex flex-col gap-5"
+    <div className="flex flex-col h-full min-h-[80vh] w-full px-2 sm:px-4 py-6 space-y-8">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold tracking-tight">Agent Configuration</h1>
+        <Button
+          type="button"
+          variant="outline"
+          className="flex items-center gap-2 border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-900 font-bold px-4 py-2"
+          onClick={handleReset}
+          disabled={isLoading || isSaving || isResetting}
         >
-          {/* Header Row */}
-          <div className="flex flex-row items-center justify-between mb-2">
-            <h1 className="text-3xl font-mono font-bold text-foreground">
-              Agent Configuration
-            </h1>
-            <Button
-              type="button"
-              variant="outline"
-              className="flex items-center gap-2 border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-900 font-bold px-4 py-2"
-              onClick={handleReset}
-              disabled={isLoading || isSaving || isResetting}
+          <span className="text-xl">⚠️</span>
+          <span className="font-mono">RESET ALL</span>
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="w-full py-32 flex justify-center text-lg animate-pulse text-foreground">
+          Loading configuration…
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-14 w-full">
+          {/* LEFT PANEL */}
+          <div className="flex flex-col gap-5 justify-between h-full">
+            {/* Welcome Message */}
+            <div
+              className="bg-card rounded-xl border border-border shadow-sm p-8 flex flex-col gap-4 ring-1 ring-primary/30 dark:ring-primary/40 ring-inset"
+              style={{ boxShadow: "0 0 0 1px var(--ring-color, #a5b4fc)" }}
             >
-              <span className="text-xl">⚠️</span>
-              <span className="font-mono">RESET ALL</span>
-            </Button>
+              <label className="font-mono font-bold text-lg flex items-center gap-2 text-foreground">
+                Welcome Prompt
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="w-4 h-4 text-muted-foreground cursor-pointer" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <span>{INFO.SYSTEM_MESSAGE}</span>
+                  </TooltipContent>
+                </Tooltip>
+              </label>
+              <Controller
+                name="SYSTEM_MESSAGE"
+                control={control}
+                render={({ field }) => (
+                  <Textarea
+                    {...field}
+                    className="min-h-[100px] font-mono text-sm"
+                    placeholder="Enter welcome message..."
+                  />
+                )}
+              />
+            </div>
+
+            {/* System Prompt */}
+            <div
+              className="bg-card rounded-xl border border-border shadow-sm p-8 flex flex-col gap-4 ring-1 ring-primary/30 dark:ring-primary/40 ring-inset"
+              style={{ boxShadow: "0 0 0 1px var(--ring-color, #a5b4fc)" }}
+            >
+              <label className="font-mono font-bold text-lg flex items-center gap-2 text-foreground">
+                System Prompt
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="w-4 h-4 text-muted-foreground cursor-pointer" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <span>{INFO.SYSTEM_PROMPT}</span>
+                  </TooltipContent>
+                </Tooltip>
+              </label>
+              <Controller
+                name="SYSTEM_PROMPT"
+                control={control}
+                render={({ field }) => (
+                  <Textarea
+                    {...field}
+                    className="min-h-[200px] font-mono text-sm"
+                    placeholder="Enter system prompt..."
+                  />
+                )}
+              />
+            </div>
           </div>
 
-          {isLoading ? (
-            <div className="w-full py-32 flex justify-center text-lg animate-pulse text-foreground">
-              Loading configuration…
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-14 w-full">
-              {/* LEFT PANEL */}
-              <div className="flex flex-col gap-5 justify-between h-full">
-                {/* Welcome Message */}
-                <div
-                  className="bg-card rounded-xl border border-border shadow-sm p-8 flex flex-col gap-4 ring-1 ring-primary/30 dark:ring-primary/40 ring-inset"
-                  style={{ boxShadow: "0 0 0 1px var(--ring-color, #a5b4fc)" }}
-                  /*
-                    - ring-1: always show a thin ring
-                    - ring-primary/30: faded blue for light mode
-                    - dark:ring-primary/40: slightly stronger in dark mode
-                    - ring-inset: keeps the ring inside the border
-                    - boxShadow fallback for browsers that don't support ring
-                  */
-                >
-                  <label className="font-mono font-bold text-lg flex items-center gap-2 text-foreground">
-                    Welcome Prompt
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="w-4 h-4 text-muted-foreground cursor-pointer" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <span>{INFO.SYSTEM_MESSAGE}</span>
-                      </TooltipContent>
-                    </Tooltip>
-                  </label>
-                  <Controller
-                    name="SYSTEM_MESSAGE"
-                    control={control}
-                    render={({ field }) => (
-                      <Textarea
-                        className="resize-y min-h-[100px] bg-background border border-border text-foreground"
-                        rows={3}
-                        maxLength={512}
-                        {...field}
-                      />
-                    )}
-                  />
-                </div>
-                {/* System Prompt */}
-                <div
-                  className="bg-card rounded-xl border border-border shadow-sm p-8 flex flex-col gap-4 ring-1 ring-primary/30 dark:ring-primary/40 ring-inset"
-                  style={{ boxShadow: "0 0 0 1px var(--ring-color, #a5b4fc)" }}
-                >
-                  <label className="font-mono font-bold text-lg flex items-center gap-2 text-foreground">
-                    System Prompt
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="w-4 h-4 text-muted-foreground cursor-pointer" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <span>{INFO.SYSTEM_PROMPT}</span>
-                      </TooltipContent>
-                    </Tooltip>
-                  </label>
-                  <Controller
-                    name="SYSTEM_PROMPT"
-                    control={control}
-                    render={({ field }) => (
-                      <Textarea
-                        className="resize-y min-h-[490px] bg-background border border-border text-foreground"
-                        rows={6}
-                        maxLength={2048}
-                        {...field}
-                      />
-                    )}
-                  />
-                </div>
+          {/* RIGHT PANEL */}
+          <div className="flex flex-col gap-8 justify-between h-full">
+            {/* LLM SECTION */}
+            <div
+              className="bg-card rounded-xl border border-border shadow-sm p-8 flex flex-col gap-8 ring-1 ring-primary/30 dark:ring-primary/40 ring-inset"
+              style={{ boxShadow: "0 0 0 1px var(--ring-color, #a5b4fc)" }}
+            >
+              <div className="font-mono text-lg font-bold flex items-center gap-2 text-foreground mb-2">
+                LLM
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="w-4 h-4 text-muted-foreground cursor-pointer" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <span>{INFO.GROQ_MODEL}</span>
+                  </TooltipContent>
+                </Tooltip>
               </div>
-
-              {/* RIGHT PANEL */}
-              <div className="flex flex-col gap-5 justify-between h-full">
-                {/* LLM SECTION */}
-                <div
-                  className="bg-card rounded-xl border border-border shadow-sm p-8 flex flex-col gap-6 ring-1 ring-primary/30 dark:ring-primary/40 ring-inset"
-                  style={{ boxShadow: "0 0 0 1px var(--ring-color, #a5b4fc)" }}
-                >
-                  <div className="font-mono text-lg font-bold flex items-center gap-2 text-foreground">
-                    LLM
+              <div className="flex flex-col gap-6">
+                {/* Model Dropdown - Strict left alignment */}
+                <div className="flex items-center gap-4 w-full">
+                  <span className="font-mono min-w-[110px] flex items-center gap-1 text-foreground">
+                    Model
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Info className="w-4 h-4 text-muted-foreground cursor-pointer" />
@@ -440,319 +437,325 @@ export default function PromptManagement() {
                         <span>{INFO.GROQ_MODEL}</span>
                       </TooltipContent>
                     </Tooltip>
-                  </div>
-                  <div className="flex flex-col gap-4">
-                    {/* Model Dropdown - Fixed */}
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono min-w-[110px] text-foreground">
-                        Model
-                      </span>
-                      <Controller
-                        name="GROQ_MODEL"
-                        control={control}
-                        render={({ field }) => (
-                          <Select
-                            value={field.value}
-                            onValueChange={field.onChange}
-                          >
-                            <SelectTrigger className="w-full max-w-xs bg-background border border-border text-foreground">
-                              <SelectValue placeholder="Select Model" />
-                            </SelectTrigger>
-                            <SelectContent className="min-w-[300px]">
-                              {MODEL_OPTIONS.map((opt) => (
-                                <SelectItem key={opt.value} value={opt.value}>
-                                  <div className="flex items-center justify-between w-full">
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <span className="font-semibold hover:underline decoration-dotted cursor-help">
-                                          {opt.label}
-                                        </span>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <div className="flex flex-col gap-1 p-2">
-                                          {opt.inputPrice !== "--" && (
-                                            <div className="flex justify-between gap-4">
-                                              <span className="text-muted-foreground">
-                                                Input:
-                                              </span>
-                                              <span className="font-mono font-bold">
-                                                {opt.inputPrice}
-                                              </span>
-                                            </div>
-                                          )}
-                                          {opt.outputPrice !== "--" && (
-                                            <div className="flex justify-between gap-4">
-                                              <span className="text-muted-foreground">
-                                                Output:
-                                              </span>
-                                              <span className="font-mono font-bold">
-                                                {opt.outputPrice}
-                                              </span>
-                                            </div>
-                                          )}
-                                          {opt.inputPrice === "--" &&
-                                            opt.outputPrice === "--" && (
-                                              <span className="text-muted-foreground">
-                                                Pricing information not
-                                                available
-                                              </span>
-                                            )}
-                                        </div>
-                                      </TooltipContent>
-                                    </Tooltip>
-
-                                    {/* Show small price indicators inline */}
-                                    {(opt.inputPrice !== "--" ||
-                                      opt.outputPrice !== "--") && (
-                                      <div className="flex gap-1 text-xs text-muted-foreground ml-2">
+                  </span>
+                  <div className="flex-1">
+                    <Controller
+                      name="GROQ_MODEL"
+                      control={control}
+                      render={({ field }) => (
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <SelectTrigger className="w-full bg-background border border-border text-foreground">
+                            <SelectValue placeholder="Select Model" />
+                          </SelectTrigger>
+                          <SelectContent className="min-w-[300px]">
+                            {MODEL_OPTIONS.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>
+                                <div className="flex items-center justify-between w-full">
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="font-semibold hover:underline decoration-dotted cursor-help">
+                                        {opt.label}
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <div className="flex flex-col gap-1 p-2">
                                         {opt.inputPrice !== "--" && (
-                                          <span className="font-mono">
-                                            {opt.inputPrice}
-                                          </span>
+                                          <div className="flex justify-between gap-4">
+                                            <span className="text-muted-foreground">
+                                              Input:
+                                            </span>
+                                            <span className="font-mono font-bold">
+                                              {opt.inputPrice}
+                                            </span>
+                                          </div>
                                         )}
                                         {opt.outputPrice !== "--" && (
-                                          <span className="font-mono">
-                                            →{opt.outputPrice}
-                                          </span>
+                                          <div className="flex justify-between gap-4">
+                                            <span className="text-muted-foreground">
+                                              Output:
+                                            </span>
+                                            <span className="font-mono font-bold">
+                                              {opt.outputPrice}
+                                            </span>
+                                          </div>
                                         )}
+                                        {opt.inputPrice === "--" &&
+                                          opt.outputPrice === "--" && (
+                                            <span className="text-muted-foreground">
+                                              Pricing information not
+                                              available
+                                            </span>
+                                          )}
                                       </div>
-                                    )}
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        )}
-                      />
-                    </div>
-                    {/* Max Tokens Slider */}
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono min-w-[110px] flex items-center gap-1 text-foreground">
-                        Max Tokens
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="w-4 h-4 ml-1 text-muted-foreground cursor-pointer" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <span>{INFO.GROQ_MAX_TOKENS}</span>
-                          </TooltipContent>
-                        </Tooltip>
-                      </span>
-                      <Controller
-                        name="GROQ_MAX_TOKENS"
-                        control={control}
-                        render={({ field }) => (
-                          <div className="flex-1 flex items-center gap-2">
-                            <Slider
-                              min={100}
-                              max={5000}
-                              step={1}
-                              value={[Number(field.value) || 100]}
-                              onValueChange={(val) =>
-                                field.onChange(val[0].toString())
-                              }
-                              className="flex-1"
-                            />
-                            <Input
-                              type="number"
-                              min={100}
-                              max={5000}
-                              className="w-20 bg-background border border-border text-foreground"
-                              value={field.value}
-                              onChange={(e) => field.onChange(e.target.value)}
-                            />
-                          </div>
-                        )}
-                      />
-                    </div>
-                    {/* Temperature Slider */}
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono min-w-[110px] flex items-center gap-1 text-foreground">
-                        Temperature
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="w-4 h-4 ml-1 text-muted-foreground cursor-pointer" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <span>{INFO.GROQ_TEMPERATURE}</span>
-                          </TooltipContent>
-                        </Tooltip>
-                      </span>
-                      <Controller
-                        name="GROQ_TEMPERATURE"
-                        control={control}
-                        render={({ field }) => (
-                          <div className="flex-1 flex items-center gap-2">
-                            <Slider
-                              min={0.0}
-                              max={5.0}
-                              step={0.1}
-                              value={[Number(field.value) || 0.0]}
-                              onValueChange={(val) =>
-                                field.onChange(val[0].toFixed(1))
-                              }
-                              className="flex-1"
-                            />
-                            <Input
-                              type="number"
-                              min={0}
-                              max={5}
-                              step={0.1}
-                              className="w-16 bg-background border border-border text-foreground"
-                              value={field.value}
-                              onChange={(e) => field.onChange(e.target.value)}
-                            />
-                          </div>
-                        )}
-                      />
-                    </div>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                  {(opt.inputPrice !== "--" ||
+                                    opt.outputPrice !== "--") && (
+                                    <div className="flex gap-1 text-xs text-muted-foreground ml-2">
+                                      {opt.inputPrice !== "--" && (
+                                        <span className="font-mono">
+                                          {opt.inputPrice}
+                                        </span>
+                                      )}
+                                      {opt.outputPrice !== "--" && (
+                                        <span className="font-mono">
+                                          →{opt.outputPrice}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
                   </div>
                 </div>
-
-                {/* Speech/Voice */}
-                <div
-                  className="bg-card rounded-xl border border-border shadow-sm p-8 flex flex-col gap-6 ring-1 ring-primary/30 dark:ring-primary/40 ring-inset"
-                  style={{ boxShadow: "0 0 0 1px var(--ring-color, #a5b4fc)" }}
-                >
-                  <div className="flex flex-col gap-4">
-                    {/* Speech to Text */}
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono min-w-[140px] flex items-center gap-1 text-foreground">
-                        Speech to Text
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="w-4 h-4 text-muted-foreground cursor-pointer" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <span>{INFO.SPEECH_RECOGNITION_MODEL}</span>
-                          </TooltipContent>
-                        </Tooltip>
-                      </span>
-                      <Controller
-                        name="SPEECH_RECOGNITION_MODEL"
-                        control={control}
-                        render={({ field }) => (
-                          <Select
+                {/* Max Tokens Slider */}
+                <div className="flex items-center gap-4 w-full">
+                  <span className="font-mono min-w-[110px] flex items-center gap-1 text-foreground">
+                    Max Tokens
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="w-4 h-4 ml-1 text-muted-foreground cursor-pointer" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <span>{INFO.GROQ_MAX_TOKENS}</span>
+                      </TooltipContent>
+                    </Tooltip>
+                  </span>
+                  <div className="flex-1 flex items-center gap-2">
+                    <Controller
+                      name="GROQ_MAX_TOKENS"
+                      control={control}
+                      render={({ field }) => (
+                        <>
+                          <Slider
+                            min={100}
+                            max={5000}
+                            step={1}
+                            value={[Number(field.value) || 100]}
+                            onValueChange={(val) =>
+                              field.onChange(val[0].toString())
+                            }
+                            className="flex-1"
+                          />
+                          <Input
+                            type="number"
+                            min={100}
+                            max={5000}
+                            className="w-20 bg-background border border-border text-foreground"
                             value={field.value}
-                            onValueChange={field.onChange}
-                          >
-                            <SelectTrigger className="w-full max-w-xs bg-background border border-border text-foreground">
-                              <SelectValue placeholder="Select" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {STT_OPTIONS.map((opt) => (
-                                <SelectItem key={opt.value} value={opt.value}>
-                                  {opt.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        )}
-                      />
-                    </div>
-                    {/* Text to Speech */}
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono min-w-[140px] flex items-center gap-1 text-foreground">
-                        Text to Speech
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="w-4 h-4 text-muted-foreground cursor-pointer" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <span>{INFO.TTS_MODEL}</span>
-                          </TooltipContent>
-                        </Tooltip>
-                      </span>
-                      <Controller
-                        name="TTS_MODEL"
-                        control={control}
-                        render={({ field }) => (
-                          <Select
-                            value={field.value}
-                            onValueChange={field.onChange}
-                          >
-                            <SelectTrigger className="w-full max-w-xs bg-background border border-border text-foreground">
-                              <SelectValue placeholder="Select" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {TTS_OPTIONS.map((opt) => (
-                                <SelectItem key={opt.value} value={opt.value}>
-                                  {opt.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        )}
-                      />
-                    </div>
-                    {/* Voice */}
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono min-w-[140px] flex items-center gap-1 text-foreground">
-                        Voice
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="w-4 h-4 text-muted-foreground cursor-pointer" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <span>{INFO.TTS_VOICE}</span>
-                          </TooltipContent>
-                        </Tooltip>
-                      </span>
-                      <Controller
-                        name="TTS_VOICE"
-                        control={control}
-                        render={({ field }) => (
-                          <Select
-                            value={field.value}
-                            onValueChange={field.onChange}
-                          >
-                            <SelectTrigger className="w-full max-w-xs bg-background border border-border text-foreground">
-                              <SelectValue placeholder="Select" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {VOICE_OPTIONS.map((opt) => (
-                                <SelectItem key={opt.value} value={opt.value}>
-                                  {opt.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        )}
-                      />
-                    </div>
+                            onChange={(e) => field.onChange(e.target.value)}
+                          />
+                        </>
+                      )}
+                    />
                   </div>
                 </div>
+                {/* Temperature Slider */}
+                <div className="flex items-center gap-4 w-full">
+                  <span className="font-mono min-w-[110px] flex items-center gap-1 text-foreground">
+                    Temperature
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="w-4 h-4 ml-1 text-muted-foreground cursor-pointer" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <span>{INFO.GROQ_TEMPERATURE}</span>
+                      </TooltipContent>
+                    </Tooltip>
+                  </span>
+                  <div className="flex-1 flex items-center gap-2">
+                    <Controller
+                      name="GROQ_TEMPERATURE"
+                      control={control}
+                      render={({ field }) => (
+                        <>
+                          <Slider
+                            min={0.0}
+                            max={5.0}
+                            step={0.1}
+                            value={[Number(field.value) || 0.0]}
+                            onValueChange={(val) =>
+                              field.onChange(val[0].toFixed(1))
+                            }
+                            className="flex-1"
+                          />
+                          <Input
+                            type="number"
+                            min={0}
+                            max={5}
+                            step={0.1}
+                            className="w-16 bg-background border border-border text-foreground"
+                            value={field.value}
+                            onChange={(e) => field.onChange(e.target.value)}
+                          />
+                        </>
+                      )}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
 
-                {/* VAD Config */}
-                <div
-                  className="bg-card rounded-xl border border-border shadow-sm p-8 flex flex-col gap-6 ring-1 ring-primary/30 dark:ring-primary/40 ring-inset"
-                  style={{ boxShadow: "0 0 0 1px var(--ring-color, #a5b4fc)" }}
-                >
-                  <div className="font-mono text-lg font-bold flex items-center gap-2 text-foreground">
-                    VAD Configuration
+            {/* Speech/Voice */}
+            <div
+              className="bg-card rounded-xl border border-border shadow-sm p-8 flex flex-col gap-8 ring-1 ring-primary/30 dark:ring-primary/40 ring-inset"
+              style={{ boxShadow: "0 0 0 1px var(--ring-color, #a5b4fc)" }}
+            >
+              <div className="flex flex-col gap-6 w-full">
+                {/* Speech to Text */}
+                <div className="flex items-center gap-4 w-full">
+                  <span className="font-mono min-w-[140px] flex items-center gap-1 text-foreground">
+                    Speech to Text
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Info className="w-4 h-4 text-muted-foreground cursor-pointer" />
                       </TooltipTrigger>
                       <TooltipContent>
-                        Voice Activity Detection (controls AI response timing to
-                        speech).
+                        <span>{INFO.SPEECH_RECOGNITION_MODEL}</span>
                       </TooltipContent>
                     </Tooltip>
+                  </span>
+                  <div className="flex-1">
+                    <Controller
+                      name="SPEECH_RECOGNITION_MODEL"
+                      control={control}
+                      render={({ field }) => (
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <SelectTrigger className="w-full bg-background border border-border text-foreground">
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {STT_OPTIONS.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
                   </div>
-                  {/* Sample Rate */}
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono min-w-[140px] flex items-center gap-1 text-foreground">
-                      Sample Rate
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Info className="w-4 h-4 ml-1 text-muted-foreground cursor-pointer" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <span>{INFO.VAD_SAMPLE_RATE}</span>
-                        </TooltipContent>
-                      </Tooltip>
-                    </span>
+                </div>
+                {/* Text to Speech */}
+                <div className="flex items-center gap-4 w-full">
+                  <span className="font-mono min-w-[140px] flex items-center gap-1 text-foreground">
+                    Text to Speech
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="w-4 h-4 text-muted-foreground cursor-pointer" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <span>{INFO.TTS_MODEL}</span>
+                      </TooltipContent>
+                    </Tooltip>
+                  </span>
+                  <div className="flex-1">
+                    <Controller
+                      name="TTS_MODEL"
+                      control={control}
+                      render={({ field }) => (
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <SelectTrigger className="w-full bg-background border border-border text-foreground">
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {TTS_OPTIONS.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                  </div>
+                </div>
+                {/* Voice */}
+                <div className="flex items-center gap-4 w-full">
+                  <span className="font-mono min-w-[140px] flex items-center gap-1 text-foreground">
+                    Voice
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="w-4 h-4 text-muted-foreground cursor-pointer" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <span>{INFO.TTS_VOICE}</span>
+                      </TooltipContent>
+                    </Tooltip>
+                  </span>
+                  <div className="flex-1">
+                    <Controller
+                      name="TTS_VOICE"
+                      control={control}
+                      render={({ field }) => (
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <SelectTrigger className="w-full bg-background border border-border text-foreground">
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {VOICE_OPTIONS.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* VAD Config */}
+            <div
+              className="bg-card rounded-xl border border-border shadow-sm p-8 flex flex-col gap-8 ring-1 ring-primary/30 dark:ring-primary/40 ring-inset"
+              style={{ boxShadow: "0 0 0 1px var(--ring-color, #a5b4fc)" }}
+            >
+              <div className="font-mono text-lg font-bold flex items-center gap-2 text-foreground mb-2">
+                VAD Configuration
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="w-4 h-4 text-muted-foreground cursor-pointer" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Voice Activity Detection (controls AI response timing to
+                    speech).
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <div className="flex flex-col gap-6 w-full">
+                {/* Sample Rate */}
+                <div className="flex items-center gap-4 w-full">
+                  <span className="font-mono min-w-[140px] flex items-center gap-1 text-foreground">
+                    Sample Rate
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="w-4 h-4 ml-1 text-muted-foreground cursor-pointer" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <span>{INFO.VAD_SAMPLE_RATE}</span>
+                      </TooltipContent>
+                    </Tooltip>
+                  </span>
+                  <div className="flex-1">
                     <Controller
                       name="VAD_SAMPLE_RATE"
                       control={control}
@@ -761,7 +764,7 @@ export default function PromptManagement() {
                           value={field.value}
                           onValueChange={field.onChange}
                         >
-                          <SelectTrigger className="w-32 bg-background border border-border text-foreground">
+                          <SelectTrigger className="w-full max-w-[160px] bg-background border border-border text-foreground">
                             <SelectValue placeholder="Select" />
                           </SelectTrigger>
                           <SelectContent>
@@ -775,24 +778,26 @@ export default function PromptManagement() {
                       )}
                     />
                   </div>
-                  {/* Speech Frames */}
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono min-w-[140px] flex items-center gap-1 text-foreground">
-                      Speech Frames
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Info className="w-4 h-4 ml-1 text-muted-foreground cursor-pointer" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <span>{INFO.VAD_SPEECH_FRAMES}</span>
-                        </TooltipContent>
-                      </Tooltip>
-                    </span>
+                </div>
+                {/* Speech Frames */}
+                <div className="flex items-center gap-4 w-full">
+                  <span className="font-mono min-w-[140px] flex items-center gap-1 text-foreground">
+                    Speech Frames
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="w-4 h-4 ml-1 text-muted-foreground cursor-pointer" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <span>{INFO.VAD_SPEECH_FRAMES}</span>
+                      </TooltipContent>
+                    </Tooltip>
+                  </span>
+                  <div className="flex-1 flex items-center gap-2">
                     <Controller
                       name="VAD_SPEECH_FRAMES"
                       control={control}
                       render={({ field }) => (
-                        <div className="flex-1 flex items-center gap-2">
+                        <>
                           <Slider
                             min={0}
                             max={5}
@@ -811,28 +816,30 @@ export default function PromptManagement() {
                             value={field.value}
                             onChange={(e) => field.onChange(e.target.value)}
                           />
-                        </div>
+                        </>
                       )}
                     />
                   </div>
-                  {/* Silence Frames */}
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono min-w-[140px] flex items-center gap-1 text-foreground">
-                      Silence Frames
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Info className="w-4 h-4 ml-1 text-muted-foreground cursor-pointer" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <span>{INFO.VAD_SILENCE_FRAMES}</span>
-                        </TooltipContent>
-                      </Tooltip>
-                    </span>
+                </div>
+                {/* Silence Frames */}
+                <div className="flex items-center gap-4 w-full">
+                  <span className="font-mono min-w-[140px] flex items-center gap-1 text-foreground">
+                    Silence Frames
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="w-4 h-4 ml-1 text-muted-foreground cursor-pointer" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <span>{INFO.VAD_SILENCE_FRAMES}</span>
+                      </TooltipContent>
+                    </Tooltip>
+                  </span>
+                  <div className="flex-1 flex items-center gap-2">
                     <Controller
                       name="VAD_SILENCE_FRAMES"
                       control={control}
                       render={({ field }) => (
-                        <div className="flex-1 flex items-center gap-2">
+                        <>
                           <Slider
                             min={0}
                             max={5}
@@ -851,37 +858,28 @@ export default function PromptManagement() {
                             value={field.value}
                             onChange={(e) => field.onChange(e.target.value)}
                           />
-                        </div>
+                        </>
                       )}
                     />
                   </div>
                 </div>
               </div>
             </div>
-          )}
-
-          {/* Save Button - bottom right */}
-          <div className="flex justify-end items-center gap-2 mt-8">
-            <Button
-              type="submit"
-              className="px-6 py-2 text-lg font-bold"
-              disabled={isSaving || isLoading || isResetting}
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-5 w-5" />
-                  Save Changes
-                </>
-              )}
-            </Button>
           </div>
-        </form>
+        </div>
+      )}
+
+      {/* Save Button */}
+      <div className="flex justify-end">
+        <Button
+          type="submit"
+          onClick={handleSubmit(onSubmit)}
+          disabled={isLoading || isSaving}
+          className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-6 py-2 rounded-lg shadow-sm"
+        >
+          {isSaving ? "Saving..." : "Save Changes"}
+        </Button>
       </div>
-    </TooltipProvider>
+    </div>
   );
 }

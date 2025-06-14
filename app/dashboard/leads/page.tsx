@@ -372,347 +372,345 @@ export default function LeadsDashboardPage() {
   }, [leads, search]);
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <header className="px-8 pt-8 pb-4 flex flex-col gap-2">
+    <div className="flex flex-col h-full min-h-[80vh] w-full px-2 sm:px-4 py-6 space-y-8">
+      <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Leads Dashboard</h1>
-      </header>
-      <main className="flex-1 px-8 pb-8 flex flex-col">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
-            <span className="text-sm text-muted-foreground">
-              Showing <b>{filteredLeads.length}</b> of <b>{totalLeads}</b> leads
-              {selected.size > 0 && (
-                <span className="ml-2 text-xs text-primary">
-                  | <b>{selected.size}</b> selected
-                </span>
-              )}
+      </div>
+
+      {/* Stats Row */}
+      <div className="flex flex-wrap w-full gap-x-6 gap-y-4 justify-between items-stretch">
+        {/* Total Leads */}
+        <div className="rounded-lg bg-muted shadow p-4 flex flex-col justify-center flex-1 min-w-[170px]">
+          <span className="text-sm font-medium text-muted-foreground">
+            Total Leads
+          </span>
+          {loading ? (
+            <Skeleton className="h-7 w-20 mt-2" />
+          ) : (
+            <span className="text-2xl font-bold mt-1">{totalLeads}</span>
+          )}
+        </div>
+        {/* Selected Leads */}
+        <div className="rounded-lg bg-muted shadow p-4 flex flex-col justify-center flex-1 min-w-[170px]">
+          <span className="text-sm font-medium text-muted-foreground">
+            Selected Leads
+          </span>
+          {loading ? (
+            <Skeleton className="h-7 w-20 mt-2" />
+          ) : (
+            <span className="text-2xl font-bold mt-1">{selected.size}</span>
+          )}
+        </div>
+        {/* Active Calls */}
+        <div className="rounded-lg bg-muted shadow p-4 flex flex-col justify-center flex-1 min-w-[170px]">
+          <span className="text-sm font-medium text-muted-foreground">
+            Active Calls
+          </span>
+          {loading ? (
+            <Skeleton className="h-7 w-20 mt-2" />
+          ) : (
+            <span className="text-2xl font-bold mt-1">{activeLeadIds.size}</span>
+          )}
+        </div>
+        {/* Last Updated */}
+        <div className="rounded-lg bg-muted shadow p-4 flex flex-col justify-center flex-1 min-w-[170px]">
+          <span className="text-sm font-medium text-muted-foreground">
+            Last Updated
+          </span>
+          {loading ? (
+            <Skeleton className="h-7 w-20 mt-2" />
+          ) : (
+            <span className="text-2xl font-bold mt-1">
+              {new Date().toLocaleTimeString()}
             </span>
-            <input
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search by phone number"
-              className="mt-1 sm:mt-0 px-2 py-1 rounded bg-muted border border-border text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary w-full sm:w-56"
-            />
+          )}
+        </div>
+      </div>
+
+      {/* Search and Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
+          <span className="text-sm text-muted-foreground">
+            Showing <b>{filteredLeads.length}</b> of <b>{totalLeads}</b> leads
+            {selected.size > 0 && (
+              <span className="ml-2 text-xs text-primary">
+                | <b>{selected.size}</b> selected
+              </span>
+            )}
+          </span>
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search by phone number"
+            className="mt-1 sm:mt-0 px-2 py-1 rounded bg-muted border border-border text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary w-full sm:w-56"
+          />
+        </div>
+        <div className="flex gap-2">
+          {/* Custom Call Button (left) */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2 border-primary text-primary hover:bg-primary/10"
+            onClick={() => setDialpadOpen(true)}
+            disabled={customCallLoading || customPolling}
+          >
+            <Phone className="w-4 h-4" />
+            Custom Call
+          </Button>
+          {/* Main CALL Button (right) */}
+          <Button
+            size="sm"
+            className={cn(
+              "bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-lg shadow transition px-4 py-2",
+              callLoading || selected.size === 0 ? "opacity-60 cursor-not-allowed" : ""
+            )}
+            disabled={callLoading || selected.size === 0}
+            onClick={handleCall}
+          >
+            {callLoading ? 'Calling...' : 'CALL'}
+          </Button>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="flex-1 w-full max-w-12xl overflow-x-auto mt-2 rounded-xl bg-muted shadow p-2 sm:p-4">
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-left font-mono text-xs">
+            <thead>
+              <tr className="bg-muted text-muted-foreground text-xs">
+                <th className="px-2 py-2 w-12"></th>
+                {columns.map(col => (
+                  <th key={col.key} className={cn('px-2 py-2 font-semibold text-xs', col.width)}>
+                    {col.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading
+                ? Array.from({ length: 10 }).map((_, i) => (
+                    <tr key={i} className="border-b border-border">
+                      <td className="px-4 py-3"><Skeleton className="h-5 w-5 rounded" /></td>
+                      {columns.map(col => (
+                        <td key={col.key} className={cn('px-4 py-3', col.width)}>
+                          <Skeleton className="h-5 w-full rounded" />
+                        </td>
+                      ))}
+                    </tr>
+                  ))
+                : filteredLeads.map(lead => {
+                    const isActive = activeLeadIds.has(lead.id);
+                    return (
+                      <tr
+                        key={lead.id}
+                        className={cn(
+                          'border-b border-border hover:bg-accent transition cursor-pointer group text-xs',
+                          selected.has(lead.id) ? 'bg-accent/60' : '',
+                          isActive ? 'opacity-50 pointer-events-none' : ''
+                        )}
+                        tabIndex={0}
+                        onClick={() => openUserModal(lead)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') openUserModal(lead);
+                        }}
+                      >
+                        <td className="px-2 py-2">
+                          <Checkbox
+                            checked={selected.has(lead.id)}
+                            onCheckedChange={() => handleSelect(lead.id)}
+                            disabled={isCheckboxDisabled(lead.id) || callLoading || isActive}
+                            aria-label={`Select lead ${lead.firstNameLowerCase} ${lead.lastNameLowerCase}`}
+                            className="border-primary data-[state=checked]:bg-primary"
+                            onClick={e => e.stopPropagation()}
+                          />
+                        </td>
+                        <td className={cn('px-2 py-2', columns[0].width)}>
+                          {(() => {
+                            try {
+                              const d = new Date(lead.dateAdded);
+                              return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                            } catch {
+                              return '-';
+                            }
+                          })()}
+                        </td>
+                        <td className={cn('px-2 py-2', columns[1].width)}>
+                          {(() => {
+                            try {
+                              const d = new Date(lead.dateAdded);
+                              return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+                            } catch {
+                              return '-';
+                            }
+                          })()}
+                        </td>
+                        <td className={cn('px-2 py-2', columns[2].width)}>
+                          <span className="capitalize">{lead.firstNameLowerCase} {lead.lastNameLowerCase}</span>
+                        </td>
+                        <td className={cn('px-2 py-2', columns[3].width)}>{lead.phone}</td>
+                        <td className={cn('px-2 py-2', columns[4].width)}>
+                          {(() => {
+                            const fields = parseCustomFields(lead.customFields);
+                            if (!fields.length) return <span className="text-muted-foreground">-</span>;
+                            const words = fields[0].value.split(' ').slice(0, 3).join(' ');
+                            return <span>{words}{fields[0].value.split(' ').length > 3 ? '...' : ''}</span>;
+                          })()}
+                        </td>
+                        <td className={cn('px-2 py-2', columns[5].width)}>
+                          {(() => {
+                            const value = callStatus[lead.id];
+                            return value
+                              ? <span className={cn(
+                                  'dark:text-white',
+                                  'not-dark:' + (
+                                    isTerminalStatus(value)
+                                      ? 'text-destructive'
+                                      : value === 'Ringing'
+                                      ? 'text-yellow-600'
+                                      : value === 'Up'
+                                      ? 'text-green-600'
+                                      : 'text-muted-foreground'
+                                  )
+                                )}>{value}</span>
+                              : <span className="text-muted-foreground">-</span>;
+                          })()}
+                        </td>
+                      </tr>
+                    )})}
+            </tbody>
+          </table>
+        </div>
+        <div className="flex items-center justify-between px-6 py-4 bg-muted border-t border-border">
+          <div className="text-sm text-muted-foreground">
+            Page <b>{page}</b> of <b>{totalPages}</b>
           </div>
           <div className="flex gap-2">
-            {/* Custom Call Button (left) */}
             <Button
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2 border-primary text-primary hover:bg-primary/10"
-              onClick={() => setDialpadOpen(true)}
-              disabled={customCallLoading || customPolling}
+              variant="ghost"
+              className="text-primary"
+              disabled={page === 1}
+              onClick={() => setPage(p => Math.max(1, p - 1))}
             >
-              <Phone className="w-4 h-4" />
-              Custom Call
+              Previous
             </Button>
-            {/* Main CALL Button (right) */}
             <Button
-              size="sm"
-              className={cn(
-                "bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-lg shadow transition px-4 py-2",
-                callLoading || selected.size === 0 ? "opacity-60 cursor-not-allowed" : ""
-              )}
-              disabled={callLoading || selected.size === 0}
-              onClick={handleCall}
+              variant="ghost"
+              className="text-primary"
+              disabled={page === totalPages}
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
             >
-              {callLoading ? 'Calling...' : 'CALL'}
+              Next
             </Button>
           </div>
         </div>
-        {/* Dialpad Modal */}
-        <Dialog open={dialpadOpen} onOpenChange={open => {
-          setDialpadOpen(open);
-          if (!open) {
-            setDialNumber('');
-            setCustomCallId(null);
-            setCustomCallStatus('');
-            setCustomCallLoading(false);
-            setCustomPolling(false);
-            setCustomError(null);
-          }
-        }}>
-          <DialogContent className="max-w-sm bg-card border border-border rounded-2xl shadow-xl p-6 flex flex-col items-center">
-            <DialogHeader className="w-full">
-              <DialogTitle className="text-lg font-bold text-primary flex items-center gap-2">
-                <Phone className="w-5 h-5" />
-                Custom Dialpad
-              </DialogTitle>
-              <DialogDescription className="text-muted-foreground text-xs mt-1">
-                Enter a number to call directly. Only one custom call at a time.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex flex-col items-center gap-4 w-full mt-2">
-              {/* Number Display */}
-              <div className="w-full flex justify-center">
-                <Input
-                  value={dialNumber}
-                  onChange={e => setDialNumber(e.target.value.replace(/[^\d+]/g, ''))}
-                  placeholder="Enter number"
-                  className="w-[260px] bg-muted rounded-lg px-3 py-2 text-center font-mono text-xl tracking-widest text-foreground border border-border select-all transition-colors"
-                  disabled={customCallLoading || customPolling}
-                  maxLength={15}
-                />
-              </div>
-              {/* Dialpad */}
-              <div className="grid grid-cols-3 gap-x-6 gap-y-4 mt-2 w-[220px]">
-                {dialpadButtons.flat().map((btn, i) => (
-                  <Button
-                    key={btn + i}
-                    variant="ghost"
-                    className={cn(
-                      'rounded-full h-11 w-11 text-lg font-mono flex items-center justify-center border border-border shadow-sm',
-                      'transition-all duration-150',
-                      btn === 'back' ? 'text-destructive' : 'text-foreground',
-                      'hover:bg-accent hover:text-accent-foreground active:bg-primary/10',
-                      customCallLoading || customPolling ? 'opacity-50 cursor-not-allowed' : ''
-                    )}
-                    onClick={() => handleDialpadInput(btn)}
-                    disabled={customCallLoading || customPolling || (btn === '+' && dialNumber.length > 0)}
-                  >
-                    {btn === 'back' ? <span>&larr;</span> : btn}
-                  </Button>
-                ))}
-              </div>
-              {/* Actions */}
-              <div className="flex gap-2 mt-1 w-full justify-center">
-                <Button
-                  variant="ghost"
-                  className="text-muted-foreground border border-border rounded-lg px-4"
-                  onClick={handleDialpadClear}
-                  disabled={customCallLoading || customPolling || !dialNumber}
-                >
-                  Clear
-                </Button>
-                <Button
-                  className="bg-primary text-primary-foreground font-semibold px-6 py-2 rounded-lg shadow-sm"
-                  onClick={handleCustomCall}
-                  disabled={!dialNumber || customCallLoading || customPolling}
-                >
-                  {customCallLoading ? 'Calling...' : 'Call'}
-                </Button>
-              </div>
-              {/* Live Call Status */}
-              {(customCallStatus || customCallLoading) && (
-                <div className="mt-2 w-full flex flex-col items-center">
-                  <span className="text-xs text-muted-foreground mb-1">Live Call Status</span>
-                  <span className={cn(
-                    'font-mono text-xl font-bold px-4 py-2 rounded-lg',
-                    'transition-colors duration-300',
-                    customCallStatus === 'Up'
-                      ? 'text-green-600 dark:text-green-400'
-                      : customCallStatus === 'Ringing'
-                      ? 'text-yellow-600 dark:text-yellow-400'
-                      : isTerminalStatus(customCallStatus)
-                      ? 'text-destructive'
-                      : 'text-muted-foreground'
-                  )}>
-                    {customCallStatus || 'initiating'}
-                  </span>
-                </div>
-              )}
-              {customError && (
-                <div className="mt-2 text-destructive bg-destructive/10 px-4 py-2 rounded-lg border border-destructive text-center w-full">
-                  {customError}
-                </div>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
-        <div className="rounded-xl overflow-hidden shadow-lg bg-card border border-border">
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left font-mono text-xs">
-              <thead>
-                <tr className="bg-muted text-muted-foreground text-xs">
-                  <th className="px-2 py-2 w-12"></th>
-                  {columns.map(col => (
-                    <th key={col.key} className={cn('px-2 py-2 font-semibold text-xs', col.width)}>
-                      {col.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {loading
-                  ? Array.from({ length: 10 }).map((_, i) => (
-                      <tr key={i} className="border-b border-border">
-                        <td className="px-4 py-3"><Skeleton className="h-5 w-5 rounded" /></td>
-                        {columns.map(col => (
-                          <td key={col.key} className={cn('px-4 py-3', col.width)}>
-                            <Skeleton className="h-5 w-full rounded" />
-                          </td>
-                        ))}
-                      </tr>
-                    ))
-                  : filteredLeads.map(lead => {
-                      const isActive = activeLeadIds.has(lead.id);
-                      return (
-                        <tr
-                          key={lead.id}
-                          className={cn(
-                            'border-b border-border hover:bg-accent transition cursor-pointer group text-xs',
-                            selected.has(lead.id) ? 'bg-accent/60' : '',
-                            isActive ? 'opacity-50 pointer-events-none' : ''
-                          )}
-                          tabIndex={0}
-                          onClick={() => openUserModal(lead)}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') openUserModal(lead);
-                          }}
-                        >
-                          <td className="px-2 py-2">
-                            <Checkbox
-                              checked={selected.has(lead.id)}
-                              onCheckedChange={() => handleSelect(lead.id)}
-                              disabled={isCheckboxDisabled(lead.id) || callLoading || isActive}
-                              aria-label={`Select lead ${lead.firstNameLowerCase} ${lead.lastNameLowerCase}`}
-                              className="border-primary data-[state=checked]:bg-primary"
-                              onClick={e => e.stopPropagation()}
-                            />
-                          </td>
-                          <td className={cn('px-2 py-2', columns[0].width)}>
-                            {(() => {
-                              try {
-                                const d = new Date(lead.dateAdded);
-                                return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-                              } catch {
-                                return '-';
-                              }
-                            })()}
-                          </td>
-                          <td className={cn('px-2 py-2', columns[1].width)}>
-                            {(() => {
-                              try {
-                                const d = new Date(lead.dateAdded);
-                                return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-                              } catch {
-                                return '-';
-                              }
-                            })()}
-                          </td>
-                          <td className={cn('px-2 py-2', columns[2].width)}>
-                            <span className="capitalize">{lead.firstNameLowerCase} {lead.lastNameLowerCase}</span>
-                          </td>
-                          <td className={cn('px-2 py-2', columns[3].width)}>{lead.phone}</td>
-                          <td className={cn('px-2 py-2', columns[4].width)}>
-                            {(() => {
-                              const fields = parseCustomFields(lead.customFields);
-                              if (!fields.length) return <span className="text-muted-foreground">-</span>;
-                              const words = fields[0].value.split(' ').slice(0, 3).join(' ');
-                              return <span>{words}{fields[0].value.split(' ').length > 3 ? '...' : ''}</span>;
-                            })()}
-                          </td>
-                          <td className={cn('px-2 py-2', columns[5].width)}>
-                            {(() => {
-                              const value = callStatus[lead.id];
-                              return value
-                                ? <span className={cn(
-                                    'dark:text-white',
-                                    'not-dark:' + (
-                                      isTerminalStatus(value)
-                                        ? 'text-destructive'
-                                        : value === 'Ringing'
-                                        ? 'text-yellow-600'
-                                        : value === 'Up'
-                                        ? 'text-green-600'
-                                        : 'text-muted-foreground'
-                                    )
-                                  )}>{value}</span>
-                                : <span className="text-muted-foreground">-</span>;
-                            })()}
-                          </td>
-                        </tr>
-                      )})}
-              </tbody>
-            </table>
-          </div>
-          <div className="flex items-center justify-between px-6 py-4 bg-muted border-t border-border">
-            <div className="text-sm text-muted-foreground">
-              Page <b>{page}</b> of <b>{totalPages}</b>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="ghost"
-                className="text-primary"
-                disabled={page === 1}
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-              >
-                Previous
-              </Button>
-              <Button
-                variant="ghost"
-                className="text-primary"
-                disabled={page === totalPages}
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              >
-                Next
-              </Button>
-            </div>
-          </div>
-        </div>
-        {error && (
-          <div className="mt-4 text-destructive bg-destructive/10 px-4 py-2 rounded-lg border border-destructive">
-            {error}
-          </div>
-        )}
-      </main>
-      <Dialog open={userModal.open} onOpenChange={closeUserModal}>
-        <DialogContent className="max-w-2xl bg-card border border-border rounded-2xl shadow-2xl p-8">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-primary">
-              User Details
+      </div>
+
+      {/* Dialpad Modal */}
+      <Dialog open={dialpadOpen} onOpenChange={open => {
+        setDialpadOpen(open);
+        if (!open) {
+          setDialNumber('');
+          setCustomCallId(null);
+          setCustomCallStatus('');
+          setCustomCallLoading(false);
+          setCustomPolling(false);
+          setCustomError(null);
+        }
+      }}>
+        <DialogContent className="max-w-sm bg-card border border-border rounded-2xl shadow-xl p-6 flex flex-col items-center">
+          <DialogHeader className="w-full">
+            <DialogTitle className="text-lg font-bold text-primary flex items-center gap-2">
+              <Phone className="w-5 h-5" />
+              Custom Dialpad
             </DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              Detailed information about the selected user.
+            <DialogDescription className="text-muted-foreground text-xs mt-1">
+              Enter a number to call directly. Only one custom call at a time.
             </DialogDescription>
           </DialogHeader>
-          {userModal.lead ? (
-            <div className="flex flex-col gap-6 mt-6">
-              <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-                <div className="text-primary font-mono">ID</div>
-                <div className="text-foreground">{userModal.lead.id}</div>
-                <div className="text-primary font-mono">Date</div>
-                <div className="text-foreground">{formatDate(userModal.lead.dateAdded)}</div>
-                <div className="text-primary font-mono">Name</div>
-                <div className="text-foreground capitalize">{userModal.lead.firstNameLowerCase} {userModal.lead.lastNameLowerCase}</div>
-                <div className="text-primary font-mono">Phone</div>
-                <div className="text-foreground">{userModal.lead.phone}</div>
-                <div className="text-primary font-mono">Email</div>
-                <div className="text-foreground">{userModal.lead.email}</div>
-                <div className="text-primary font-mono">Address</div>
-                <div className="text-foreground">{userModal.lead.address || '-'}</div>
-                <div className="text-primary font-mono">State</div>
-                <div className="text-foreground">{userModal.lead.state || '-'}</div>
-                <div className="text-primary font-mono">Country</div>
-                <div className="text-foreground">{userModal.lead.country || '-'}</div>
-                <div className="text-primary font-mono">Source</div>
-                <div className="text-foreground">{userModal.lead.source || '-'}</div>
-                <div className="text-primary font-mono">Custom Fields</div>
-                <div className="text-foreground flex flex-col gap-2">
-                  {parseCustomFields(userModal.lead.customFields).length === 0
-                    ? <span>-</span>
-                    : parseCustomFields(userModal.lead.customFields).map(field => (
-                        <span key={field.id} className="text-muted-foreground text-xs">{field.value}</span>
-                      ))}
-                </div>
-              </div>
+          <div className="flex flex-col items-center gap-4 w-full mt-2">
+            {/* Number Display */}
+            <div className="w-full flex justify-center">
+              <Input
+                value={dialNumber}
+                onChange={e => setDialNumber(e.target.value.replace(/[^\d+]/g, ''))}
+                placeholder="Enter number"
+                className="w-[260px] bg-muted rounded-lg px-3 py-2 text-center font-mono text-xl tracking-widest text-foreground border border-border select-all transition-colors"
+                disabled={customCallLoading || customPolling}
+                maxLength={15}
+              />
+            </div>
+            {/* Dialpad */}
+            <div className="grid grid-cols-3 gap-x-6 gap-y-4 mt-2 w-[220px]">
+              {dialpadButtons.flat().map((btn, i) => (
+                <Button
+                  key={btn + i}
+                  variant="ghost"
+                  className={cn(
+                    'rounded-full h-11 w-11 text-lg font-mono flex items-center justify-center border border-border shadow-sm',
+                    'transition-all duration-150',
+                    btn === 'back' ? 'text-destructive' : 'text-foreground',
+                    'hover:bg-accent hover:text-accent-foreground active:bg-primary/10',
+                    customCallLoading || customPolling ? 'opacity-50 cursor-not-allowed' : ''
+                  )}
+                  onClick={() => handleDialpadInput(btn)}
+                  disabled={customCallLoading || customPolling || (btn === '+' && dialNumber.length > 0)}
+                >
+                  {btn === 'back' ? <span>&larr;</span> : btn}
+                </Button>
+              ))}
+            </div>
+            {/* Actions */}
+            <div className="flex gap-2 mt-1 w-full justify-center">
               <Button
-                className="mt-4 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg"
-                onClick={closeUserModal}
+                variant="ghost"
+                className="text-muted-foreground border border-border rounded-lg px-4"
+                onClick={handleDialpadClear}
+                disabled={customCallLoading || customPolling || !dialNumber}
               >
-                Close
+                Clear
+              </Button>
+              <Button
+                className="bg-primary text-primary-foreground font-semibold px-6 py-2 rounded-lg shadow-sm"
+                onClick={handleCustomCall}
+                disabled={!dialNumber || customCallLoading || customPolling}
+              >
+                {customCallLoading ? 'Calling...' : 'Call'}
               </Button>
             </div>
-          ) : (
-            <div className="flex flex-col gap-4 mt-6">
-              <Skeleton className="h-6 w-1/2" />
-              <Skeleton className="h-6 w-1/3" />
-              <Skeleton className="h-6 w-1/4" />
-            </div>
-          )}
+            {/* Live Call Status */}
+            {(customCallStatus || customCallLoading) && (
+              <div className="mt-2 w-full flex flex-col items-center">
+                <span className="text-xs text-muted-foreground mb-1">Live Call Status</span>
+                <span className={cn(
+                  'font-mono text-xl font-bold px-4 py-2 rounded-lg',
+                  'transition-colors duration-300',
+                  customCallStatus === 'Up'
+                    ? 'text-green-600 dark:text-green-400'
+                    : customCallStatus === 'Ringing'
+                    ? 'text-yellow-600 dark:text-yellow-400'
+                    : isTerminalStatus(customCallStatus)
+                    ? 'text-destructive'
+                    : 'text-muted-foreground'
+                )}>
+                  {customCallStatus || 'initiating'}
+                </span>
+              </div>
+            )}
+            {customError && (
+              <div className="mt-2 text-destructive bg-destructive/10 px-4 py-2 rounded-lg border border-destructive text-center w-full">
+                {customError}
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
+
+      {error && (
+        <div className="mt-4 text-destructive bg-destructive/10 px-4 py-2 rounded-lg border border-destructive">
+          {error}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { CallLogsTable } from "@/components/call-logs-table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
 import { getAuthHeaders } from "@/lib/auth";
@@ -7,17 +8,42 @@ import { useEffect, useState } from "react";
 
 interface CallLog {
   id: string;
+  name: string | undefined;
+  accountcode: string | undefined;
   src: string | undefined;
+  dst: string | undefined;
+  dcontext: string | undefined;
+  clid: string | undefined;
+  channel: string;
+  dstchannel: string | undefined;
+  lastapp: string | undefined;
+  lastdata: string | undefined;
   start: string;
+  answer: string | undefined;
+  end: string | undefined;
   duration: number;
+  billsec: number | undefined;
+  disposition: string | undefined;
+  amaflags: string | undefined;
+  uniqueid: string | undefined;
+  userfield: string | undefined;
+  summary: Array<{
+    transcription: Array<{
+      role: string;
+      content: string;
+    }>;
+  }>;
+  latency: number | undefined;
 }
 
-const AnalyticsDashboardPage: React.FC = () => {
+export default function Dashboard() {
   const [callLogs, setCallLogs] = useState<CallLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  const [dockerStatus, setDockerStatus] = useState<"ok" | "error" | "loading">("loading");
+  const [dockerStatus, setDockerStatus] = useState<"ok" | "error" | "loading">(
+    "loading"
+  );
 
   // Fetch docker health
   useEffect(() => {
@@ -27,7 +53,10 @@ const AnalyticsDashboardPage: React.FC = () => {
       if (first) setDockerStatus("loading");
       try {
         const headers = getAuthHeaders();
-        const response = await fetch("https://ai.rajatkhandelwal.com/dockerhealth", { headers });
+        const response = await fetch(
+          "https://ai.rajatkhandelwal.com/dockerhealth",
+          { headers }
+        );
         let data;
         try {
           data = await response.json();
@@ -54,19 +83,52 @@ const AnalyticsDashboardPage: React.FC = () => {
     let interval: NodeJS.Timeout;
     async function fetchCallLogs() {
       try {
-        const response = await fetch("https://ai.rajatkhandelwal.com/calllogs", {
-          headers: getAuthHeaders(),
-        });
+        const response = await fetch(
+          "https://ai.rajatkhandelwal.com/calllogs",
+          {
+            headers: getAuthHeaders(),
+          }
+        );
         if (!response.ok) {
           throw new Error("Failed to fetch call logs");
         }
         const data = await response.json();
-        const mapped: CallLog[] = (Array.isArray(data) ? data : []).map((item: any) => ({
-          id: item.id,
-          src: item.src ?? undefined,
-          start: item.start ?? "",
-          duration: typeof item.duration === "number" ? item.duration : 0,
-        }));
+        const mapped: CallLog[] = (Array.isArray(data) ? data : []).map(
+          (item: any) => ({
+            id: item.id,
+            name: item.name ?? undefined,
+            accountcode: item.accountcode ?? undefined,
+            src: item.src ?? undefined,
+            dst: item.dst ?? undefined,
+            dcontext: item.dcontext ?? undefined,
+            clid: item.clid ?? undefined,
+            channel: item.channel ?? "",
+            dstchannel: item.dstchannel ?? undefined,
+            lastapp: item.lastapp ?? undefined,
+            lastdata: item.lastdata ?? undefined,
+            start: item.start ?? "",
+            answer: item.answer ?? undefined,
+            end: item.end ?? undefined,
+            duration: typeof item.duration === "number" ? item.duration : 0,
+            billsec:
+              typeof item.billsec === "number" ? item.billsec : undefined,
+            disposition: item.disposition ?? undefined,
+            amaflags: item.amaflags ?? undefined,
+            uniqueid: item.uniqueid ?? undefined,
+            userfield: item.userfield ?? undefined,
+            summary: Array.isArray(item.Summary)
+              ? item.Summary.map((sum: any) => ({
+                  transcription: Array.isArray(sum.transcription)
+                    ? sum.transcription.map((t: any) => ({
+                        role: t.role ?? "",
+                        content: t.content ?? "",
+                      }))
+                    : [],
+                }))
+              : [],
+            latency: item.latency ?? undefined,
+          })
+        );
         setCallLogs(mapped);
       } catch (error) {
         console.error("Error fetching call logs:", error);
@@ -101,7 +163,7 @@ const AnalyticsDashboardPage: React.FC = () => {
   return (
     <div className="flex flex-col h-full min-h-[80vh] w-full px-2 sm:px-4 py-6 space-y-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Analytics Dashboard</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Call Logs</h1>
       </div>
 
       {/* Stats Row (includes status card) */}
@@ -181,8 +243,19 @@ const AnalyticsDashboardPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Table, fills width and scrolls if necessary */}
+      <div className="flex-1 w-full max-w-12xl  overflow-x-auto mt-2 rounded-xl bg-muted shadow p-2 sm:p-4">
+        {isLoading ? (
+          <div className="space-y-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
+          </div>
+        ) : (
+          <CallLogsTable data={callLogs} />
+        )}
+      </div>
     </div>
   );
-};
-
-export default AnalyticsDashboardPage;
+}
