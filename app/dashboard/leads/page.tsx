@@ -373,9 +373,63 @@ export default function LeadsDashboardPage() {
 
   return (
     <div className="flex flex-col h-full min-h-[80vh] w-full px-2 sm:px-4 py-6 space-y-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Leads Dashboard</h1>
-      </div>
+      {/* User Details Pop Up */}
+      <Dialog open={userModal.open} onOpenChange={closeUserModal}>
+        <DialogContent className="max-w-2xl w-full bg-card border border-border rounded-2xl shadow-2xl p-8 sm:p-10">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-primary tracking-tight">
+              User Details
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground text-base">
+              Detailed information about the selected user.
+            </DialogDescription>
+          </DialogHeader>
+          {userModal.lead ? (
+            <div className="flex flex-col gap-1 mt-6">
+              <div className="grid grid-cols-2 gap-x-1 gap-y-4 text-base">
+                <div className="text-primary font-mono">ID</div>
+                <div className="text-foreground break-all">{userModal.lead.id}</div>
+                <div className="text-primary font-mono">Date</div>
+                <div className="text-foreground">{formatDate(userModal.lead.dateAdded)}</div>
+                <div className="text-primary font-mono">Name</div>
+                <div className="text-foreground capitalize">{userModal.lead.firstNameLowerCase} {userModal.lead.lastNameLowerCase}</div>
+                <div className="text-primary font-mono">Phone</div>
+                <div className="text-foreground">{userModal.lead.phone}</div>
+                <div className="text-primary font-mono">Email</div>
+                <div className="text-foreground break-all">{userModal.lead.email || '-'}</div>
+                <div className="text-primary font-mono">Address</div>
+                <div className="text-foreground">{userModal.lead.address || '-'}</div>
+                <div className="text-primary font-mono">State</div>
+                <div className="text-foreground">{userModal.lead.state || '-'}</div>
+                <div className="text-primary font-mono">Country</div>
+                <div className="text-foreground">{userModal.lead.country || '-'}</div>
+                <div className="text-primary font-mono">Source</div>
+                <div className="text-foreground">{userModal.lead.source || '-'}</div>
+                <div className="text-primary font-mono">Custom Fields</div>
+                <div className="text-foreground flex flex-col gap-2 max-h-40 overflow-y-auto">
+                  {parseCustomFields(userModal.lead.customFields).length === 0
+                    ? <span>-</span>
+                    : parseCustomFields(userModal.lead.customFields).map(field => (
+                        <span key={field.id} className="text-muted-foreground text-sm">{field.value}</span>
+                      ))}
+                </div>
+              </div>
+              <Button
+                className="mt-4 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg px-8 py-2 text-base font-semibold shadow"
+                onClick={closeUserModal}
+              >
+                Close
+              </Button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4 mt-6">
+              <Skeleton className="h-6 w-1/2" />
+              <Skeleton className="h-6 w-1/3" />
+              <Skeleton className="h-6 w-1/4" />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Stats Row */}
       <div className="flex flex-wrap w-full gap-x-6 gap-y-4 justify-between items-stretch">
