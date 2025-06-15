@@ -113,13 +113,7 @@ function MetricCard({
 }) {
   return (
     <div
-      className={`
-        flex flex-col gap-1 rounded-2xl
-        shadow-[0_3px_20px_0_rgba(37,99,235,0.08)]
-        border border-border px-6 py-4 min-w-[180px] 
-        bg-white/90 dark:bg-[#141a2a]/80
-        transition-all ${className}
-      `}
+      className={`flex flex-col rounded-2xl glow-shadow border border-border px-6 py-4 min-w-[180px] bg-white/90 dark:bg-[#141a2a]/80 transition-all ${className}`}
     >
       <div className="flex flex-row items-center gap-2 mb-1">
         <span className="text-base font-semibold text-blue-700 dark:text-blue-300">
@@ -170,7 +164,7 @@ function BarChartCard({
   const tickColor = resolvedTheme === "dark" ? "#dbeafe" : "#334155";
   const gridColor = resolvedTheme === "dark" ? "#334155" : "#e5e7eb";
   return (
-    <div className="rounded-2xl bg-white/90 dark:bg-[#141a2a]/80 shadow-md border border-border px-7 py-5 flex-1 flex flex-col min-w-[260px] min-h-[260px] transition-all">
+    <div className="rounded-2xl glow-shadow bg-white/90 dark:bg-[#141a2a]/80 border border-border px-7 py-5 flex-1 flex flex-col min-w-[260px] min-h-[260px] transition-all">
       <div className="flex items-center gap-2 mb-3">
         <span className="text-base font-semibold text-blue-700 dark:text-blue-300">{title}</span>
         {tooltip && (
@@ -254,7 +248,7 @@ function PieChartCard({ title, data, loading, tooltip, height = 220 }: any) {
   const { resolvedTheme } = useTheme();
   const COLORS = resolvedTheme === "dark" ? PIE_COLORS_DARK : PIE_COLORS_LIGHT;
   return (
-    <div className="rounded-2xl bg-white/90 dark:bg-[#141a2a]/80 shadow-md border border-border px-6 py-4 flex-1 flex flex-col min-w-[260px] min-h-[220px] transition-all">
+    <div className="rounded-2xl glow-shadow bg-white/90 dark:bg-[#141a2a]/80 border border-border px-6 py-4 flex-1 flex flex-col min-w-[260px] min-h-[220px] transition-all">
       <div className="flex items-center gap-2 mb-3">
         <span className="text-base font-semibold text-blue-700 dark:text-blue-300">{title}</span>
         {tooltip && (
@@ -529,9 +523,9 @@ export default function AnalyticsDashboardPage() {
           Refresh
         </button>
       </div>
-      <div className={`flex flex-col min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 dark:from-[#151d2e] dark:via-[#0f172a] dark:to-[#172554] py-6 px-2 sm:px-6 space-y-10 w-full`}>
+      <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 dark:from-[#151d2e] dark:via-[#0f172a] dark:to-[#172554] py-6 px-2 sm:px-6 gap-8 w-full">
         {/* Stats grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 w-full">
           <MetricCard
             title="Avg Call Duration"
             loading={isLoading}
@@ -558,8 +552,8 @@ export default function AnalyticsDashboardPage() {
           />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full">
-          <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 w-full">
+          <div className="grid grid-cols-2 gap-8">
             <MetricCard
               title="Unique Leads"
               loading={isLoading}
@@ -606,7 +600,7 @@ export default function AnalyticsDashboardPage() {
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
           <BarChartCard
             title="Total Cost / Day"
             loading={isLoading}
@@ -615,7 +609,7 @@ export default function AnalyticsDashboardPage() {
             tooltip="Sum of 'cost' per day from call logs"
             height={220}
           />
-          <div className="rounded-2xl bg-white/80 dark:bg-[#1e253b]/60 border border-dashed border-blue-200 flex flex-col justify-center items-center min-h-[220px]">
+          <div className="rounded-2xl glow-shadow bg-white/80 dark:bg-[#1e253b]/60 border border-dashed border-blue-200 flex flex-col justify-center items-center min-h-[220px]">
             <span className="text-xl font-bold text-blue-400 dark:text-blue-200 opacity-60">
               More Analytics Coming Soon
             </span>
