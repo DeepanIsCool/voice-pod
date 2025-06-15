@@ -555,35 +555,49 @@ export default function AnalyticsDashboardPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 w-full">
           <div className="grid grid-cols-2 gap-8">
             <MetricCard
-              title="Unique Leads"
+              title="Avg Cost"
               loading={isLoading}
-              value={uniqueLeads}
-              tooltip="Unique Leads = Unique src numbers"
+              value={
+                isLoading
+                  ? undefined
+                  : usdInrRate
+                    ? `₹${avgCostInr.toFixed(2)}`
+                    : callLogs.length === 0
+                      ? 0
+                      : `$${(
+                          callLogs.reduce((acc, l) => acc + (typeof l.cost === 'number' ? l.cost : Number(l.cost) || 0), 0) / callLogs.length
+                        ).toFixed(4)}`
+              }
+              tooltip={
+                usdInrRate
+                  ? `Average Cost = Total cost of all calls ÷ Number of calls, converted to INR.\nCurrent rate: 1 USD = ₹${usdInrRate.toFixed(2)}`
+                  : usdInrError
+                    ? `Average Cost = Total cost of all calls ÷ Number of calls.\n${usdInrError}`
+                    : "Average Cost = Total cost of all calls ÷ Number of calls"
+              }
               className="min-w-[120px] px-3 py-4"
             />
-          <MetricCard
-            title="Avg Cost"
-            loading={isLoading}
-            value={
-              isLoading
-                ? undefined
-                : usdInrRate
-                  ? `₹${avgCostInr.toFixed(2)}`
-                  : callLogs.length === 0
+            <MetricCard
+              title="Avg Cost / Minute"
+              loading={isLoading}
+              value={
+                isLoading
+                  ? undefined
+                  : callLogs.length === 0 || avgCallDuration === 0
                     ? 0
-                    : `$${(
-                        callLogs.reduce((acc, l) => acc + (typeof l.cost === 'number' ? l.cost : Number(l.cost) || 0), 0) / callLogs.length
-                      ).toFixed(4)}`
-            }
-            tooltip={
-              usdInrRate
-                ? `Average Cost = Total cost of all calls ÷ Number of calls, converted to INR.\nCurrent rate: 1 USD = ₹${usdInrRate.toFixed(2)}`
-                : usdInrError
-                  ? `Average Cost = Total cost of all calls ÷ Number of calls.\n${usdInrError}`
-                  : "Average Cost = Total cost of all calls ÷ Number of calls"
-            }
-            className="min-w-[120px] px-3 py-4"
-          />
+                    : usdInrRate
+                      ? `₹${((callLogs.reduce((acc, l) => acc + (typeof l.cost === 'number' ? l.cost : Number(l.cost) || 0), 0) * usdInrRate) / (callLogs.reduce((acc, l) => acc + l.duration, 0) / 60)).toFixed(2)}`
+                      : `$${((callLogs.reduce((acc, l) => acc + (typeof l.cost === 'number' ? l.cost : Number(l.cost) || 0), 0)) / (callLogs.reduce((acc, l) => acc + l.duration, 0) / 60)).toFixed(4)}`
+              }
+              tooltip={
+                usdInrRate
+                  ? `Average Cost per Minute = Total cost of all calls ÷ Total minutes, converted to INR.\nCurrent rate: 1 USD = ₹${usdInrRate.toFixed(2)}`
+                  : usdInrError
+                    ? `Average Cost per Minute = Total cost of all calls ÷ Total minutes.\n${usdInrError}`
+                    : "Average Cost per Minute = Total cost of all calls ÷ Total minutes"
+              }
+              className="min-w-[120px] px-3 py-4"
+            />
           </div>
           <PieChartCard
             title="Incoming / Outgoing"
