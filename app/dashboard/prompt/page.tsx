@@ -271,10 +271,15 @@ export default function PromptManagement() {
   const onSubmit = async (values: EnvConfig) => {
     setIsSaving(true);
     try {
+      // Replace double quotes with single quotes in SYSTEM_PROMPT
+      const updatedValues = {
+        ...values,
+        SYSTEM_PROMPT: values.SYSTEM_PROMPT.replace(/"/g, "'")
+      };
       const response = await fetch("https://ai.rajatkhandelwal.com/updateenv", {
         method: "POST",
         headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify(updatedValues),
       });
       if (!response.ok) throw new Error("Save failed");
       toast({ title: "Saved!", description: "Agent configuration updated." });
