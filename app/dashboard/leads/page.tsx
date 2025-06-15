@@ -179,7 +179,7 @@ export default function LeadsDashboardPage() {
       // Start polling after 5 seconds
       setTimeout(() => {
         setPolling(true);
-      }, 1000);
+      }, 2000);
 
     } catch (e: any) {
       setError(e.message || 'Unknown error');
@@ -247,7 +247,7 @@ export default function LeadsDashboardPage() {
       }
 
       // Schedule next poll
-      pollingRef.current = setTimeout(poll, 1000);
+      pollingRef.current = setTimeout(poll, 2000);
     }
 
     poll();
@@ -288,7 +288,7 @@ export default function LeadsDashboardPage() {
       const callId = data.results?.[0]?.data?.id;
       if (!callId) throw new Error('No call ID returned');
       setCustomCallId(callId);
-      setTimeout(() => setCustomPolling(true), 1000);
+      setTimeout(() => setCustomPolling(true), 2000);
     } catch (e: any) {
       setCustomError(e.message || 'Unknown error');
       setCustomCallStatus('');
